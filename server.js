@@ -20,7 +20,12 @@ mongoose.connect(MONGO_URI)
 const ServiceSchema = new mongoose.Schema({
     nombre: { type: String, required: true },
     categoria: { type: String, required: true },
-    precio: { type: Number, required: true }
+    precio: { type: Number, required: true },
+    // NUEVO: Lista de insumos vinculados al inventario que consume este servicio
+    insumosNecesarios: [{
+        inventoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Inventory' },
+        cantidadConsumida: { type: Number, required: true }
+    }]
 });
 const Service = mongoose.model('Service', ServiceSchema);
 
@@ -35,7 +40,7 @@ const Inventory = mongoose.model('Inventory', InventorySchema);
 const SaleSchema = new mongoose.Schema({
     clientName: { type: String, required: true },
     services: [{
-        serviceId: String,
+        serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
         nombreServicio: String,
         precioUnitario: Number
     }],
@@ -46,7 +51,7 @@ const Sale = mongoose.model('Sale', SaleSchema);
 
 
 // ==========================================
-// 2. RUTAS DE LA API (¡SIEMPRE DEBEN IR ANTES DE EXPRESS.STATIC!)
+// 2. RUTAS DE LA API
 // ==========================================
 
 // --- Servicios ---
@@ -98,7 +103,7 @@ app.post('/api/inventory', async (req, res) => {
     }
 });
 
-// --- Ventas / Facturación ---
+// --- Ventas / Facturación (Con descuento automático de inventario) ---
 app.get('/api/sales', async (req, res) => {
     try {
         const sales = await Sale.find().sort({ createdAt: -1 });
@@ -110,9 +115,34 @@ app.get('/api/sales', async (req, res) => {
 
 app.post('/api/sales', async (req, res) => {
     try {
-        const newSale = new Sale(req.body);
+        const { clientName, services, metodoPago } = req.body;
+
+        // 1. Recorrer los servicios vendidos para descontar sus insumos del inventario
+        if (services && services.length > 0) {
+            for (const item of services) {
+                // Buscamos el servicio en la BD para ver qué insumos necesita
+                const serviceData = await Service.findById(item.serviceId);
+                
+                if (serviceData && serviceData.insumosNecesarios && serviceData.insumosNecesarios.length > 0) {
+                    for (const insumo of serviceData.insumosNecesarios) {
+                        // Restamos la cantidad correspondiente en el inventario
+                        await Inventory.findByIdAndUpdate(insumo.inventoryId, {
+                            $inc: { cantidadStock: -insumo.cantidadConsumida }
+                        });
+                    }
+                }
+            }
+        }
+
+        // 2. Guardar la venta en la base de datos
+        const newSale = new Sale({
+            clientName,
+            services,
+            metodoPago
+        });
         await newSale.save();
-        res.status(201).json(newSale);
+
+        res.status(201).json({ message: 'Venta registrada e inventario actualizado con éxito', newSale });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -120,7 +150,7 @@ app.post('/api/sales', async (req, res) => {
 
 
 // ==========================================
-// 3. ARCHIVOS ESTÁTICOS (¡AHORA VA AL FINAL!)
+// 3. ARCHIVOS ESTÁTICOS
 // ==========================================
 app.use(express.static('public'));
 
