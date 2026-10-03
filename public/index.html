@@ -213,11 +213,6 @@
             align-items: center;
             border: 1px solid var(--border);
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-        }
-
-        .card-item:hover {
-            border-color: #444;
         }
 
         .card-info h4 {
@@ -273,7 +268,6 @@
 
     <header>
         <div class="logo-container">
-            <!-- Asegúrate de que el nombre del archivo de tu logo coincida con este src -->
             <img src="logo.jpeg" alt="Esther Lashes Logo">
         </div>
         <h1>Esther Lashes</h1>
@@ -300,12 +294,11 @@
         <!-- SECCIÓN SERVICIOS -->
         <div id="servicios" class="tab-content active">
             <div class="card-panel">
-                <h2>Gestión de Servicios</h2>
+                <h2>Gestión de Servicios e Insumos</h2>
                 <form id="serviceForm">
-                    <input type="hidden" id="serviceId">
                     <div class="form-group">
                         <label>Nombre del Procedimiento</label>
-                        <input type="text" id="nombreServicio" required placeholder="Ej: Volumen Ruso / Microblading">
+                        <input type="text" id="nombreServicio" required placeholder="Ej: Volumen Ruso">
                     </div>
                     <div class="form-group">
                         <label>Categoría</label>
@@ -321,7 +314,18 @@
                         <label>Precio ($)</label>
                         <input type="number" id="precioServicio" required placeholder="0.00">
                     </div>
-                    <button type="submit" class="btn-primary" id="btnGuardarServicio">Registrar Servicio</button>
+                    
+                    <!-- NUEVO: Vincular Insumo a descontar automáticamente -->
+                    <div class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
+                        <label style="color: var(--gold);">Insumo que gasta este servicio</label>
+                        <select id="selectInsumoServicio" style="margin-bottom: 8px;">
+                            <option value="">-- Ninguno / No descuenta stock --</option>
+                        </select>
+                        <label>Cantidad consumida por servicio</label>
+                        <input type="number" id="cantidadConsumida" placeholder="Ej: 1 o 2" value="1">
+                    </div>
+
+                    <button type="submit" class="btn-primary" style="margin-top: 10px;">Registrar Servicio</button>
                 </form>
             </div>
 
@@ -411,9 +415,24 @@
             document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             event.currentTarget.classList.add('active');
-            if(tabId === 'servicios') cargarServicios();
+            if(tabId === 'servicios') { cargarServicios(); cargarOpcionesInsumos(); }
             if(tabId === 'inventario') cargarInventario();
             if(tabId === 'historial') cargarHistorial();
+            if(tabId === 'facturacion') cargarServicios();
+        }
+
+        async function cargarOpcionesInsumos() {
+            try {
+                const res = await fetch(`${API_URL}/inventory`);
+                const items = await res.json();
+                const selectInsumo = document.getElementById('selectInsumoServicio');
+                selectInsumo.innerHTML = `<option value="">-- Ninguno / No descuenta stock --</option>`;
+                items.forEach(i => {
+                    selectInsumo.innerHTML += `<option value="${i._id}">${i.nombreItem} (Stock actual: ${i.cantidadStock} ${i.unidadMedida})</option>`;
+                });
+            } catch(err) {
+                console.error("Error cargando selector de insumos", err);
+            }
         }
 
         async function cargarServicios() {
@@ -450,10 +469,23 @@
 
         document.getElementById('serviceForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const insumoId = document.getElementById('selectInsumoServicio').value;
+            const cantidadConsumida = document.getElementById('cantidadConsumida').value;
+
+            let insumosNecesarios = [];
+            if (insumoId) {
+                insumosNecesarios.push({
+                    inventoryId: insumoId,
+                    cantidadConsumida: parseFloat(cantidadConsumida) || 1
+                });
+            }
+
             const data = {
                 nombre: document.getElementById('nombreServicio').value,
                 categoria: document.getElementById('categoriaServicio').value,
-                precio: document.getElementById('precioServicio').value
+                precio: document.getElementById('precioServicio').value,
+                insumosNecesarios: insumosNecesarios
             };
 
             await fetch(`${API_URL}/services`, {
@@ -464,6 +496,7 @@
 
             document.getElementById('serviceForm').reset();
             cargarServicios();
+            alert('✨ Servicio registrado con su insumo vinculado.');
         });
 
         async function eliminarServicio(id) {
@@ -499,7 +532,7 @@
             });
 
             if(res.ok) {
-                alert('✨ ¡Factura generada y registrada con éxito!');
+                alert('✨ ¡Factura generada e inventario descontado con éxito!');
                 document.getElementById('saleForm').reset();
             } else {
                 alert('Error al procesar la factura');
@@ -592,9 +625,13 @@
 
             document.getElementById('inventoryForm').reset();
             cargarInventario();
+            cargarOpcionesInsumos();
+            alert('✨ Insumo agregado al inventario.');
         });
 
+        // Inicialización al cargar la página
         cargarServicios();
+        cargarOpcionesInsumos();
     </script>
 </body>
 </html>
