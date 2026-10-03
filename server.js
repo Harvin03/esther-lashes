@@ -21,7 +21,6 @@ const ServiceSchema = new mongoose.Schema({
     nombre: { type: String, required: true },
     categoria: { type: String, required: true },
     precio: { type: Number, required: true },
-    // NUEVO: Lista de insumos vinculados al inventario que consume este servicio
     insumosNecesarios: [{
         inventoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Inventory' },
         cantidadConsumida: { type: Number, required: true }
@@ -103,7 +102,7 @@ app.post('/api/inventory', async (req, res) => {
     }
 });
 
-// --- Ventas / Facturación (Con descuento automático de inventario) ---
+// --- Ventas / Facturación (Con diagnóstico de inventario) ---
 app.get('/api/sales', async (req, res) => {
     try {
         const sales = await Sale.find().sort({ createdAt: -1 });
@@ -116,25 +115,35 @@ app.get('/api/sales', async (req, res) => {
 app.post('/api/sales', async (req, res) => {
     try {
         const { clientName, services, metodoPago } = req.body;
+        console.log('--- NUEVA VENTA RECIBIDA ---');
+        console.log('Cliente:', clientName);
+        console.log('Servicios enviados:', services);
 
-        // 1. Recorrer los servicios vendidos para descontar sus insumos del inventario
         if (services && services.length > 0) {
             for (const item of services) {
-                // Buscamos el servicio en la BD para ver qué insumos necesita
+                console.log('Buscando servicio con ID:', item.serviceId);
                 const serviceData = await Service.findById(item.serviceId);
                 
-                if (serviceData && serviceData.insumosNecesarios && serviceData.insumosNecesarios.length > 0) {
-                    for (const insumo of serviceData.insumosNecesarios) {
-                        // Restamos la cantidad correspondiente en el inventario
-                        await Inventory.findByIdAndUpdate(insumo.inventoryId, {
-                            $inc: { cantidadStock: -insumo.cantidadConsumida }
-                        });
+                if (serviceData) {
+                    console.log('Servicio encontrado:', serviceData.nombre);
+                    console.log('Insumos necesarios:', serviceData.insumosNecesarios);
+                    
+                    if (serviceData.insumosNecesarios && serviceData.insumosNecesarios.length > 0) {
+                        for (const insumo of serviceData.insumosNecesarios) {
+                            console.log(`Descontando ${insumo.cantidadConsumida} del item de inventario ID:`, insumo.inventoryId);
+                            await Inventory.findByIdAndUpdate(insumo.inventoryId, {
+                                $inc: { cantidadStock: -insumo.cantidadConsumida }
+                            });
+                        }
+                    } else {
+                        console.log('⚠ Este servicio no tiene insumos necesarios configurados.');
                     }
+                } else {
+                    console.log('❌ No se encontró el servicio en la BD con el ID:', item.serviceId);
                 }
             }
         }
 
-        // 2. Guardar la venta en la base de datos
         const newSale = new Sale({
             clientName,
             services,
@@ -144,6 +153,7 @@ app.post('/api/sales', async (req, res) => {
 
         res.status(201).json({ message: 'Venta registrada e inventario actualizado con éxito', newSale });
     } catch (err) {
+        console.error('Error al procesar la venta:', err);
         res.status(500).json({ error: err.message });
     }
 });
