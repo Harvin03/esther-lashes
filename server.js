@@ -65,10 +65,14 @@ app.get('/api/services', async (req, res) => {
 
 app.post('/api/services', async (req, res) => {
     try {
+        console.log('--- CREANDO NUEVO SERVICIO ---');
+        console.log('Datos recibidos:', req.body);
         const newService = new Service(req.body);
         await newService.save();
+        console.log('Servicio guardado exitosamente con insumos:', newService.insumosNecesarios);
         res.status(201).json(newService);
     } catch (err) {
+        console.error('Error al crear servicio:', err);
         res.status(500).json({ error: err.message });
     }
 });
