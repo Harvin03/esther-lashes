@@ -419,4 +419,325 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                     <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
                         <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Ingresos Hoy</span>
-                        <h3 id="cierreTotal" style="color: var(--gold); font-size: 1.
+                        <h3 id="cierreTotal" style="color: var(--gold); font-size: 1.3rem; margin-top: 5px;">$0.00</h3>
+                    </div>
+                    <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Servicios Realizados</span>
+                        <h3 id="cierreCantidadServicios" style="color: var(--text-main); font-size: 1.3rem; margin-top: 5px;">0</h3>
+                    </div>
+                </div>
+
+                <!-- Desglose por método de pago -->
+                <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 15px; font-size: 0.9rem;">
+                    <p style="color: var(--gold); font-weight: 600; margin-bottom: 8px;">Desglose por Método de Pago:</p>
+                    <p style="margin-bottom: 4px;">💵 Efectivo: <b id="cierreEfectivo">$0.00</b></p>
+                    <p style="margin-bottom: 4px;">🏦 Transferencia: <b id="cierreTransferencia">$0.00</b></p>
+                    <p>💳 Tarjeta: <b id="cierreTarjeta">$0.00</b></p>
+                </div>
+
+                <button onclick="window.print()" class="btn-primary">🖨️ Imprimir / Guardar Cierre del Día</button>
+            </div>
+
+            <div class="card-list" id="listaCierreDetalle">
+                <!-- Detalle de las ventas de hoy se carga aquí -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = '/api';
+
+        // Declarada al principio para que esté disponible globalmente de inmediato
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
+            
+            const targetContent = document.getElementById(tabId);
+            if (targetContent) targetContent.classList.add('active');
+            
+            const clickedButton = event ? event.currentTarget : document.querySelector(`button[onclick*="${tabId}"]`);
+            if (clickedButton) {
+                clickedButton.classList.add('active');
+            }
+
+            if(tabId === 'servicios') { cargarServicios(); cargarOpcionesInsumos(); }
+            if(tabId === 'inventario') cargarInventario();
+            if(tabId === 'historial') cargarHistorial();
+            if(tabId === 'facturacion') cargarServicios();
+            if(tabId === 'cierre') cargarCierreDiario();
+        }
+
+        async function cargarOpcionesInsumos() {
+            try {
+                const res = await fetch(`${API_URL}/inventory`);
+                const items = await res.json();
+                const selectInsumo = document.getElementById('selectInsumoServicio');
+                selectInsumo.innerHTML = `<option value="">-- Ninguno / No descuenta stock --</option>`;
+                items.forEach(i => {
+                    selectInsumo.innerHTML += `<option value="${i._id}">${i.nombreItem} (Stock actual: ${i.cantidadStock} ${i.unidadMedida})</option>`;
+                });
+            } catch(err) {
+                console.error("Error cargando selector de insumos", err);
+            }
+        }
+
+        async function cargarServicios() {
+            try {
+                const res = await fetch(`${API_URL}/services`);
+                const servicios = await res.json();
+                const contenedor = document.getElementById('listaServicios');
+                const selectVenta = document.getElementById('selectServicioVenta');
+                
+                contenedor.innerHTML = '';
+                selectVenta.innerHTML = '';
+
+                servicios.forEach(s => {
+                    contenedor.innerHTML += `
+                        <div class="card-item">
+                            <div class="card-info">
+                                <h4>${s.nombre}</h4>
+                                <p><span class="badge">${s.categoria}</span></p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span class="price-tag">$${s.precio}</span>
+                                <div class="actions">
+                                    <button onclick="eliminarServicio('${s._id}')" title="Eliminar">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    selectVenta.innerHTML += `<option value="${s._id}" data-precio="${s.precio}" data-nombre="${s.nombre}">${s.nombre} — $${s.precio}</option>`;
+                });
+            } catch (err) {
+                console.error("Error cargando servicios", err);
+            }
+        }
+
+        document.getElementById('serviceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const insumoId = document.getElementById('selectInsumoServicio').value;
+            const cantidadConsumida = document.getElementById('cantidadConsumida').value;
+
+            let insumosNecesarios = [];
+            if (insumoId) {
+                insumosNecesarios.push({
+                    inventoryId: insumoId,
+                    cantidadConsumida: parseFloat(cantidadConsumida) || 1
+                });
+            }
+
+            const data = {
+                nombre: document.getElementById('nombreServicio').value,
+                categoria: document.getElementById('categoriaServicio').value,
+                precio: document.getElementById('precioServicio').value,
+                insumosNecesarios: insumosNecesarios
+            };
+
+            await fetch(`${API_URL}/services`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            document.getElementById('serviceForm').reset();
+            cargarServicios();
+            alert('✨ Servicio registrado con su insumo vinculado.');
+        });
+
+        async function eliminarServicio(id) {
+            if(confirm('¿Eliminar este servicio del catálogo?')) {
+                await fetch(`${API_URL}/services/${id}`, { method: 'DELETE' });
+                cargarServicios();
+            }
+        }
+
+        document.getElementById('saleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const select = document.getElementById('selectServicioVenta');
+            if(!select.options.length) {
+                alert('Primero debes registrar al menos un servicio en la pestaña Servicios.');
+                return;
+            }
+            const option = select.options[select.selectedIndex];
+            
+            const saleData = {
+                clientName: document.getElementById('clientName').value,
+                services: [{
+                    serviceId: option.value,
+                    nombreServicio: option.getAttribute('data-nombre'),
+                    precioUnitario: parseFloat(option.getAttribute('data-precio'))
+                }],
+                metodoPago: document.getElementById('metodoPago').value
+            };
+
+            const res = await fetch(`${API_URL}/sales`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(saleData)
+            });
+
+            if(res.ok) {
+                alert('✨ ¡Factura generada e inventario descontado con éxito!');
+                document.getElementById('saleForm').reset();
+            } else {
+                alert('Error al procesar la factura');
+            }
+        });
+
+        async function cargarHistorial() {
+            try {
+                const res = await fetch(`${API_URL}/sales`);
+                const ventas = await res.json();
+                const contenedor = document.getElementById('listaHistorial');
+                contenedor.innerHTML = '';
+
+                if (ventas.length === 0) {
+                    contenedor.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 20px;">No hay facturas registradas todavía.</p>`;
+                    return;
+                }
+
+                ventas.forEach(v => {
+                    const fechaObj = new Date(v.createdAt || Date.now());
+                    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { 
+                        day: '2-digit', 
+                        month: 'long', 
+                        year: 'numeric' 
+                    });
+                    const horaFormateada = fechaObj.toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+
+                    const totalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
+                    const detalleServicios = v.services.map(s => s.nombreServicio).join(', ');
+
+                    contenedor.innerHTML += `
+                        <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <h4 style="color: var(--gold);">${v.clientName}</h4>
+                                <span class="price-tag">$${totalVenta.toFixed(2)}</span>
+                            </div>
+                            <p style="font-size: 0.9rem;"><b>Servicio(s):</b> ${detalleServicios}</p>
+                            <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
+                                <span>📅 ${fechaFormateada} — ⏰ ${horaFormateada}</span>
+                                <span class="badge">Pago: ${v.metodoPago}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                console.error("Error cargando historial", err);
+            }
+        }
+
+        async function cargarInventario() {
+            try {
+                const res = await fetch(`${API_URL}/inventory`);
+                const items = await res.json();
+                const contenedor = document.getElementById('listaInventario');
+                contenedor.innerHTML = '';
+
+                items.forEach(i => {
+                    contenedor.innerHTML += `
+                        <div class="card-item">
+                            <div class="card-info">
+                                <h4>${i.nombreItem}</h4>
+                                <p>Stock: <b>${i.cantidadStock} ${i.unidadMedida}</b></p>
+                            </div>
+                            <span class="price-tag" style="font-size: 0.95rem;">Costo: $${i.precioCompra}</span>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                console.error("Error cargando inventario", err);
+            }
+        }
+
+        async function cargarCierreDiario() {
+            try {
+                const res = await fetch(`${API_URL}/sales`);
+                const ventas = await res.json();
+                
+                const contenedorDetalle = document.getElementById('listaCierreDetalle');
+                contenedorDetalle.innerHTML = '';
+
+                const hoy = new Date().toLocaleDateString('en-CA');
+
+                let totalIngresos = 0;
+                let cantidadServicios = 0;
+                let totalEfectivo = 0;
+                let totalTransferencia = 0;
+                let totalTarjeta = 0;
+
+                let ventasHoy = ventas.filter(v => {
+                    const fechaVenta = new Date(v.createdAt || Date.now()).toLocaleDateString('en-CA');
+                    return fechaVenta === hoy;
+                });
+
+                if (ventasHoy.length === 0) {
+                    contenedorDetalle.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 20px;">No hay ventas registradas el día de hoy todavía.</p>`;
+                }
+
+                ventasHoy.forEach(v => {
+                    const subtotalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
+                    totalIngresos += subtotalVenta;
+                    cantidadServicios += v.services.length;
+
+                    if (v.metodoPago === 'Efectivo') totalEfectivo += subtotalVenta;
+                    if (v.metodoPago === 'Transferencia') totalTransferencia += subtotalVenta;
+                    if (v.metodoPago === 'Tarjeta') totalTarjeta += subtotalVenta;
+
+                    const detalleServicios = v.services.map(s => s.nombreServicio).join(', ');
+
+                    contenedorDetalle.innerHTML += `
+                        <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <h4 style="color: var(--gold);">${v.clientName}</h4>
+                                <span class="price-tag">$${subtotalVenta.toFixed(2)}</span>
+                            </div>
+                            <p style="font-size: 0.85rem;"><b>Servicio:</b> ${detalleServicios}</p>
+                            <span class="badge">Pago: ${v.metodoPago}</span>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('cierreTotal').innerText = `$${totalIngresos.toFixed(2)}`;
+                document.getElementById('cierreCantidadServicios').innerText = cantidadServicios;
+                document.getElementById('cierreEfectivo').innerText = `$${totalEfectivo.toFixed(2)}`;
+                document.getElementById('cierreTransferencia').innerText = `$${totalTransferencia.toFixed(2)}`;
+                document.getElementById('cierreTarjeta').innerText = `$${totalTarjeta.toFixed(2)}`;
+
+            } catch (err) {
+                console.error("Error cargando cierre diario", err);
+            }
+        }
+
+        document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const itemData = {
+                nombreItem: document.getElementById('nombreItem').value,
+                cantidadStock: document.getElementById('cantidadStock').value,
+                unidadMedida: document.getElementById('unidadMedida').value,
+                precioCompra: document.getElementById('precioCompra').value
+            };
+
+            await fetch(`${API_URL}/inventory`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemData)
+            });
+
+            document.getElementById('inventoryForm').reset();
+            cargarInventario();
+            cargarOpcionesInsumos();
+            alert('✨ Insumo agregado al inventario.');
+        });
+
+        // Inicialización al cargar la página
+        cargarServicios();
+        cargarOpcionesInsumos();
+    </script>
+</body>
+</html>
