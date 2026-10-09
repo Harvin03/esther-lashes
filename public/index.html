@@ -262,6 +262,80 @@
             color: var(--gold);
             font-size: 1.05rem;
         }
+
+        /* MODAL DE TICKET PARA CELULAR Y BLUETOOTH */
+        #modalTicket {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .modal-ticket-content {
+            background: #ffffff;
+            color: #000;
+            width: 100%;
+            max-width: 320px;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* DISEÑO EXCLUSIVO PARA IMPRESIÓN TÉRMICA */
+        #ticketImpresion {
+            display: none;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #ticketImpresion, #ticketImpresion * {
+                visibility: visible;
+            }
+            #ticketImpresion {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                max-width: 80mm;
+                font-family: 'Courier New', Courier, monospace;
+                color: #000 !important;
+                background: #fff !important;
+                padding: 10px;
+                font-size: 12px;
+                line-height: 1.4;
+            }
+            .ticket-header {
+                text-align: center;
+                border-bottom: 1px dashed #000;
+                padding-bottom: 8px;
+                margin-bottom: 8px;
+            }
+            .ticket-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+            }
+            .ticket-footer {
+                text-align: center;
+                border-top: 1px dashed #000;
+                padding-top: 8px;
+                margin-top: 8px;
+                font-size: 11px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -360,7 +434,6 @@
                         </select>
                     </div>
 
-                    <!-- NUEVOS CAMPOS DE EFECTIVO Y CAMBIO -->
                     <div id="seccionEfectivo" class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
                         <label style="color: var(--gold);">Efectivo Recibido de la Clienta ($)</label>
                         <input type="number" id="efectivoRecibido" placeholder="Ej: 2000" oninput="calcularCambio()">
@@ -457,6 +530,58 @@
 
     </div>
 
+    <!-- VENTANA MODAL PARA COPIAR TICKET EN CELULAR BLUETOOTH -->
+    <div id="modalTicket" style="display:none;">
+        <div class="modal-ticket-content">
+            <div style="text-align: center; font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+                ESTHER LASHES
+            </div>
+            <div id="textoTicketCelular" style="font-size: 11px; white-space: pre-line; margin-bottom: 12px; background: #f9f9f9; padding: 8px; border: 1px solid #ddd;">
+                <!-- Texto del ticket generado -->
+            </div>
+            <button onclick="copiarTextoTicket()" class="btn-primary" style="margin-bottom: 8px; font-size: 0.85rem; padding: 10px;">📋 Copiar para Impresora Bluetooth</button>
+            <button onclick="window.print()" style="background: #333; color: #fff; border: none; padding: 10px; width: 100%; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; margin-bottom: 8px;">🖨️ Imprimir Estándar</button>
+            <button onclick="cerrarModalTicket()" style="background: #ddd; color: #000; border: none; padding: 8px; width: 100%; border-radius: 8px; font-size: 0.8rem; cursor: pointer;">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- TICKET OCULTO PARA IMPRESIÓN DIRECTA PC/ANDROID -->
+    <div id="ticketImpresion">
+        <div class="ticket-header">
+            <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ESTHER LASHES</h3>
+            <p style="font-size: 10px;">Estudio Profesional de Pestañas</p>
+            <p id="ticketFecha" style="font-size: 10px; margin-top: 4px;"></p>
+        </div>
+        <div style="margin-bottom: 6px;">
+            <p><b>Clienta:</b> <span id="ticketCliente"></span></p>
+            <p><b>Pago:</b> <span id="ticketMetodo"></span></p>
+        </div>
+        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; margin-bottom: 6px;">
+            <div class="ticket-row">
+                <span><b>Servicio</b></span>
+                <span><b>Total</b></span>
+            </div>
+            <div class="ticket-row" style="margin-top: 2px;">
+                <span id="ticketServicioNombre"></span>
+                <span id="ticketServicioPrecio"></span>
+            </div>
+        </div>
+        <div id="ticketBloqueEfectivo" style="margin-bottom: 6px; display: none;">
+            <div class="ticket-row">
+                <span>Efectivo Recibido:</span>
+                <span id="ticketEfectivoRecibido"></span>
+            </div>
+            <div class="ticket-row">
+                <span>Cambio Devuelto:</span>
+                <span id="ticketCambioDevuelto"></span>
+            </div>
+        </div>
+        <div class="ticket-footer">
+            <p>¡Gracias por su preferencia! ✨</p>
+            <p style="font-size: 9px; margin-top: 2px;">Conserve este ticket</p>
+        </div>
+    </div>
+
     <script>
         const API_URL = '/api';
 
@@ -479,7 +604,6 @@
             if(tabId === 'cierre') cargarCierreDiario();
         }
 
-        // Mostrar u ocultar campo de efectivo según método de pago
         function toggleEfectivoFields() {
             const metodo = document.getElementById('metodoPago').value;
             const seccionEfectivo = document.getElementById('seccionEfectivo');
@@ -491,7 +615,6 @@
             calcularCambio();
         }
 
-        // Calcular el cambio a devolver en tiempo real
         function calcularCambio() {
             const select = document.getElementById('selectServicioVenta');
             const metodo = document.getElementById('metodoPago').value;
@@ -612,21 +735,27 @@
             }
             const option = select.options[select.selectedIndex];
             const precioServicio = parseFloat(option.getAttribute('data-precio'));
+            const nombreServicio = option.getAttribute('data-nombre');
+            const cliente = document.getElementById('clientName').value;
             const metodoPago = document.getElementById('metodoPago').value;
+            
+            let efectivoRecibido = 0;
+            let cambioDevuelto = 0;
 
             if (metodoPago === 'Efectivo') {
-                const efectivoRecibido = parseFloat(document.getElementById('efectivoRecibido').value) || 0;
+                efectivoRecibido = parseFloat(document.getElementById('efectivoRecibido').value) || 0;
                 if (efectivoRecibido < precioServicio) {
                     alert('⚠️ El efectivo recibido es menor al valor del procedimiento.');
                     return;
                 }
+                cambioDevuelto = efectivoRecibido - precioServicio;
             }
             
             const saleData = {
-                clientName: document.getElementById('clientName').value,
+                clientName: cliente,
                 services: [{
                     serviceId: option.value,
-                    nombreServicio: option.getAttribute('data-nombre'),
+                    nombreServicio: nombreServicio,
                     precioUnitario: precioServicio
                 }],
                 metodoPago: metodoPago
@@ -639,13 +768,57 @@
             });
 
             if(res.ok) {
+                const ahora = new Date();
+                const fechaStr = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString();
+
+                // Llenar ticket oculto para impresión clásica
+                document.getElementById('ticketFecha').innerText = fechaStr;
+                document.getElementById('ticketCliente').innerText = cliente;
+                document.getElementById('ticketMetodo').innerText = metodoPago;
+                document.getElementById('ticketServicioNombre').innerText = nombreServicio;
+                document.getElementById('ticketServicioPrecio').innerText = `$${precioServicio.toFixed(2)}`;
+
+                const bloqueEfectivo = document.getElementById('ticketBloqueEfectivo');
+                let textoEfectivoTicket = "";
+                if (metodoPago === 'Efectivo') {
+                    bloqueEfectivo.style.display = 'block';
+                    document.getElementById('ticketEfectivoRecibido').innerText = `$${efectivoRecibido.toFixed(2)}`;
+                    document.getElementById('ticketCambioDevuelto').innerText = `$${cambioDevuelto.toFixed(2)}`;
+                    textoEfectivoTicket = `Efectivo Recibido: $${efectivoRecibido.toFixed(2)}\nCambio Devuelto: $${cambioDevuelto.toFixed(2)}\n`;
+                } else {
+                    bloqueEfectivo.style.display = 'none';
+                }
+
+                // Generar texto plano optimizado para la impresora Gotogo Bluetooth
+                const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${cliente}\nPago: ${metodoPago}\n--------------------------------\nServicio: ${nombreServicio}\nPrecio: $${precioServicio.toFixed(2)}\n--------------------------------\n${textoEfectivoTicket}   ¡Gracias por su visita!   `;
+                
+                document.getElementById('textoTicketCelular').innerText = textoPlano;
+                
                 alert('✨ ¡Factura generada e inventario descontado con éxito!');
+                
+                // Mostrar ventana modal para elegir opción de impresión Bluetooth o estándar
+                document.getElementById('modalTicket').style.display = 'flex';
+
                 document.getElementById('saleForm').reset();
                 toggleEfectivoFields();
             } else {
                 alert('Error al procesar la factura');
             }
         });
+
+        function copiarTextoTicket() {
+            const texto = document.getElementById('textoTicketCelular').innerText;
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('📋 ¡Texto copiado al portapapeles! Pégalo en tu aplicación de impresión Bluetooth (Gotogo).');
+            }).catch(err => {
+                console.error('Error al copiar texto', err);
+                alert('No se pudo copiar automáticamente, selecciónalo manualmente.');
+            });
+        }
+
+        function cerrarModalTicket() {
+            document.getElementById('modalTicket').style.display = 'none';
+        }
 
         async function cargarHistorial() {
             try {
@@ -754,7 +927,7 @@
 
                     contenedorDetalle.innerHTML += `
                         <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
-                            <div style="display: flex; justify-content: space-width; width: 100%; justify-content: space-between;">
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
                                 <h4 style="color: var(--gold);">${v.clientName}</h4>
                                 <span class="price-tag">$${subtotalVenta.toFixed(2)}</span>
                             </div>
