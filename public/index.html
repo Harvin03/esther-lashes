@@ -263,7 +263,7 @@
             font-size: 1.05rem;
         }
 
-        /* MODAL DE TICKET PARA CELULAR Y BLUETOOTH */
+        /* MODAL DE TICKET PARA CELULAR BLUETOOTH */
         #modalTicket {
             display: none;
             position: fixed;
@@ -291,19 +291,34 @@
             overflow-y: auto;
         }
 
-        /* DISEÑO EXCLUSIVO PARA IMPRESIÓN TÉRMICA */
-        #ticketImpresion {
+        /* CONTENEDOR OCULTO PARA IMPRESIÓN DE CIERRE DE CAJA */
+        #cierreImpresion {
             display: none;
         }
 
+        /* DISEÑO EXCLUSIVO PARA IMPRESIÓN TÉRMICA (TICKETS Y CIERRES) */
         @media print {
             body * {
                 visibility: hidden;
             }
-            #ticketImpresion, #ticketImpresion * {
+            #ticketImpresion, #ticketImpresion *, #cierreImpresion, #cierreImpresion * {
                 visibility: visible;
             }
             #ticketImpresion {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                max-width: 80mm;
+                font-family: 'Courier New', Courier, monospace;
+                color: #000 !important;
+                background: #fff !important;
+                padding: 10px;
+                font-size: 12px;
+                line-height: 1.4;
+            }
+            #cierreImpresion {
                 display: block !important;
                 position: absolute;
                 top: 0;
@@ -520,7 +535,7 @@
                     <p>💳 Tarjeta: <b id="cierreTarjeta">$0.00</b></p>
                 </div>
 
-                <button onclick="window.print()" class="btn-primary">🖨️ Imprimir / Guardar Cierre del Día</button>
+                <button onclick="imprimirCierreCaja()" class="btn-primary">🖨️ Imprimir / Guardar Cierre del Día</button>
             </div>
 
             <div class="card-list" id="listaCierreDetalle">
@@ -545,7 +560,7 @@
         </div>
     </div>
 
-    <!-- TICKET OCULTO PARA IMPRESIÓN DIRECTA PC/ANDROID -->
+    <!-- TICKET OCULTO PARA IMPRESIÓN DIRECTA DE VENTA -->
     <div id="ticketImpresion">
         <div class="ticket-header">
             <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ESTHER LASHES</h3>
@@ -579,6 +594,28 @@
         <div class="ticket-footer">
             <p>¡Gracias por su preferencia! ✨</p>
             <p style="font-size: 9px; margin-top: 2px;">Conserve este ticket</p>
+        </div>
+    </div>
+
+    <!-- FORMATO OCULTO PARA IMPRIMIR EL CIERRE DE CAJA -->
+    <div id="cierreImpresion">
+        <div class="ticket-header">
+            <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ESTHER LASHES</h3>
+            <p style="font-size: 10px;">REPORTE DE CIERRE DE CAJA</p>
+            <p id="cierrePrintFecha" style="font-size: 10px; margin-top: 4px;"></p>
+        </div>
+        <div style="margin-bottom: 6px; font-size: 11px;">
+            <p><b>Total Ingresos:</b> <span id="cierrePrintTotal">$0.00</span></p>
+            <p><b>Servicios Realizados:</b> <span id="cierrePrintCantidad">0</span></p>
+        </div>
+        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; margin-bottom: 6px; font-size: 11px;">
+            <p><b>Desglose de Pagos:</b></p>
+            <p>Efectivo: <span id="cierrePrintEfectivo">$0.00</span></p>
+            <p>Transferencia: <span id="cierrePrintTransferencia">$0.00</span></p>
+            <p>Tarjeta: <span id="cierrePrintTarjeta">$0.00</span></p>
+        </div>
+        <div class="ticket-footer">
+            <p>¡Cierre de caja exitoso! ✨</p>
         </div>
     </div>
 
@@ -771,7 +808,6 @@
                 const ahora = new Date();
                 const fechaStr = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString();
 
-                // Llenar ticket oculto para impresión clásica
                 document.getElementById('ticketFecha').innerText = fechaStr;
                 document.getElementById('ticketCliente').innerText = cliente;
                 document.getElementById('ticketMetodo').innerText = metodoPago;
@@ -789,14 +825,11 @@
                     bloqueEfectivo.style.display = 'none';
                 }
 
-                // Generar texto plano optimizado para la impresora Gotogo Bluetooth
                 const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${cliente}\nPago: ${metodoPago}\n--------------------------------\nServicio: ${nombreServicio}\nPrecio: $${precioServicio.toFixed(2)}\n--------------------------------\n${textoEfectivoTicket}   ¡Gracias por su visita!   `;
                 
                 document.getElementById('textoTicketCelular').innerText = textoPlano;
                 
                 alert('✨ ¡Factura generada e inventario descontado con éxito!');
-                
-                // Mostrar ventana modal para elegir opción de impresión Bluetooth o estándar
                 document.getElementById('modalTicket').style.display = 'flex';
 
                 document.getElementById('saleForm').reset();
@@ -818,6 +851,19 @@
 
         function cerrarModalTicket() {
             document.getElementById('modalTicket').style.display = 'none';
+        }
+
+        function imprimirCierreCaja() {
+            // Rellenar los datos ocultos para impresión antes de llamar a print
+            const ahora = new Date();
+            document.getElementById('cierrePrintFecha').innerText = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString();
+            document.getElementById('cierrePrintTotal').innerText = document.getElementById('cierreTotal').innerText;
+            document.getElementById('cierrePrintCantidad').innerText = document.getElementById('cierreCantidadServicios').innerText;
+            document.getElementById('cierrePrintEfectivo').innerText = document.getElementById('cierreEfectivo').innerText;
+            document.getElementById('cierrePrintTransferencia').innerText = document.getElementById('cierreTransferencia').innerText;
+            document.getElementById('cierrePrintTarjeta').innerText = document.getElementById('cierreTarjeta').innerText;
+
+            window.print();
         }
 
         async function cargarHistorial() {
@@ -954,7 +1000,7 @@
                 nombreItem: document.getElementById('nombreItem').value,
                 cantidadStock: document.getElementById('cantidadStock').value,
                 unidadMedida: document.getElementById('unidadMedida').value,
-                precioCompra: document.getElementById('precioCompra').value
+                precioCompra: document.getElementById('precioCompra'].value
             };
 
             await fetch(`${API_URL}/inventory`, {
