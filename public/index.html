@@ -854,7 +854,6 @@
         }
 
         function imprimirCierreCaja() {
-            // Rellenar los datos ocultos para impresión antes de llamar a print
             const ahora = new Date();
             document.getElementById('cierrePrintFecha').innerText = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString();
             document.getElementById('cierrePrintTotal').innerText = document.getElementById('cierreTotal').innerText;
@@ -1000,7 +999,7 @@
                 nombreItem: document.getElementById('nombreItem').value,
                 cantidadStock: document.getElementById('cantidadStock').value,
                 unidadMedida: document.getElementById('unidadMedida').value,
-                precioCompra: document.getElementById('precioCompra'].value
+                precioCompra: document.getElementById('precioCompra').value
             };
 
             await fetch(`${API_URL}/inventory`, {
