@@ -347,18 +347,30 @@
                     </div>
                     <div class="form-group">
                         <label>Seleccionar Servicio Realizado</label>
-                        <select id="selectServicioVenta" required>
+                        <select id="selectServicioVenta" required onchange="calcularCambio()">
                             <!-- Se llena con los servicios -->
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Método de Pago</label>
-                        <select id="metodoPago">
+                        <select id="metodoPago" onchange="toggleEfectivoFields()">
                             <option value="Efectivo">Efectivo</option>
                             <option value="Transferencia">Transferencia Bancaria</option>
                             <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
                         </select>
                     </div>
+
+                    <!-- NUEVOS CAMPOS DE EFECTIVO Y CAMBIO -->
+                    <div id="seccionEfectivo" class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
+                        <label style="color: var(--gold);">Efectivo Recibido de la Clienta ($)</label>
+                        <input type="number" id="efectivoRecibido" placeholder="Ej: 2000" oninput="calcularCambio()">
+                        
+                        <div style="margin-top: 10px; font-size: 1rem;">
+                            <span>Cambio a Devolver: </span>
+                            <strong id="cambioDevolver" style="color: var(--gold); font-size: 1.2rem;">$0.00</strong>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn-primary">Emitir Factura y Cobrar</button>
                 </form>
             </div>
@@ -448,7 +460,6 @@
     <script>
         const API_URL = '/api';
 
-        // Declarada al principio para que esté disponible globalmente de inmediato
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
@@ -464,8 +475,46 @@
             if(tabId === 'servicios') { cargarServicios(); cargarOpcionesInsumos(); }
             if(tabId === 'inventario') cargarInventario();
             if(tabId === 'historial') cargarHistorial();
-            if(tabId === 'facturacion') cargarServicios();
+            if(tabId === 'facturacion') { cargarServicios(); calcularCambio(); }
             if(tabId === 'cierre') cargarCierreDiario();
+        }
+
+        // Mostrar u ocultar campo de efectivo según método de pago
+        function toggleEfectivoFields() {
+            const metodo = document.getElementById('metodoPago').value;
+            const seccionEfectivo = document.getElementById('seccionEfectivo');
+            if (metodo === 'Efectivo') {
+                seccionEfectivo.style.display = 'block';
+            } else {
+                seccionEfectivo.style.display = 'none';
+            }
+            calcularCambio();
+        }
+
+        // Calcular el cambio a devolver en tiempo real
+        function calcularCambio() {
+            const select = document.getElementById('selectServicioVenta');
+            const metodo = document.getElementById('metodoPago').value;
+            const spanCambio = document.getElementById('cambioDevolver');
+            
+            if (!select || select.selectedIndex === -1 || metodo !== 'Efectivo') {
+                spanCambio.innerText = '$0.00';
+                return;
+            }
+
+            const option = select.options[select.selectedIndex];
+            const precioServicio = parseFloat(option.getAttribute('data-precio')) || 0;
+            const efectivoRecibido = parseFloat(document.getElementById('efectivoRecibido').value) || 0;
+
+            const cambio = efectivoRecibido - precioServicio;
+
+            if (cambio >= 0) {
+                spanCambio.innerText = `$${cambio.toFixed(2)}`;
+                spanCambio.style.color = 'var(--gold)';
+            } else {
+                spanCambio.innerText = `Falta dinero ($${Math.abs(cambio).toFixed(2)})`;
+                spanCambio.style.color = '#ff6b6b';
+            }
         }
 
         async function cargarOpcionesInsumos() {
@@ -509,6 +558,7 @@
                     `;
                     selectVenta.innerHTML += `<option value="${s._id}" data-precio="${s.precio}" data-nombre="${s.nombre}">${s.nombre} — $${s.precio}</option>`;
                 });
+                calcularCambio();
             } catch (err) {
                 console.error("Error cargando servicios", err);
             }
@@ -561,15 +611,25 @@
                 return;
             }
             const option = select.options[select.selectedIndex];
+            const precioServicio = parseFloat(option.getAttribute('data-precio'));
+            const metodoPago = document.getElementById('metodoPago').value;
+
+            if (metodoPago === 'Efectivo') {
+                const efectivoRecibido = parseFloat(document.getElementById('efectivoRecibido').value) || 0;
+                if (efectivoRecibido < precioServicio) {
+                    alert('⚠️ El efectivo recibido es menor al valor del procedimiento.');
+                    return;
+                }
+            }
             
             const saleData = {
                 clientName: document.getElementById('clientName').value,
                 services: [{
                     serviceId: option.value,
                     nombreServicio: option.getAttribute('data-nombre'),
-                    precioUnitario: parseFloat(option.getAttribute('data-precio'))
+                    precioUnitario: precioServicio
                 }],
-                metodoPago: document.getElementById('metodoPago').value
+                metodoPago: metodoPago
             };
 
             const res = await fetch(`${API_URL}/sales`, {
@@ -581,6 +641,7 @@
             if(res.ok) {
                 alert('✨ ¡Factura generada e inventario descontado con éxito!');
                 document.getElementById('saleForm').reset();
+                toggleEfectivoFields();
             } else {
                 alert('Error al procesar la factura');
             }
@@ -693,7 +754,7 @@
 
                     contenedorDetalle.innerHTML += `
                         <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
-                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <div style="display: flex; justify-content: space-width; width: 100%; justify-content: space-between;">
                                 <h4 style="color: var(--gold);">${v.clientName}</h4>
                                 <span class="price-tag">$${subtotalVenta.toFixed(2)}</span>
                             </div>
@@ -738,6 +799,7 @@
         // Inicialización al cargar la página
         cargarServicios();
         cargarOpcionesInsumos();
+        toggleEfectivoFields();
     </script>
 </body>
 </html>
