@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
+const mongoose = mongoose || require('mongoose');
 const cors = require('cors');
 
 const app = express();
@@ -77,14 +77,10 @@ app.get('/api/services', async (req, res) => {
 
 app.post('/api/services', async (req, res) => {
     try {
-        console.log('--- CREANDO NUEVO SERVICIO ---');
-        console.log('Datos recibidos:', req.body);
         const newService = new Service(req.body);
         await newService.save();
-        console.log('Servicio guardado exitosamente con insumos:', newService.insumosNecesarios);
         res.status(201).json(newService);
     } catch (err) {
-        console.error('Error al crear servicio:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -131,45 +127,47 @@ app.get('/api/sales', async (req, res) => {
 app.post('/api/sales', async (req, res) => {
     try {
         const { clientName, services, metodoPago } = req.body;
-        console.log('--- NUEVA VENTA RECIBIDA ---');
-        console.log('Cliente:', clientName);
-        console.log('Servicios enviados:', services);
-
         if (services && services.length > 0) {
             for (const item of services) {
-                console.log('Buscando servicio con ID:', item.serviceId);
                 const serviceData = await Service.findById(item.serviceId);
-                
-                if (serviceData) {
-                    console.log('Servicio encontrado:', serviceData.nombre);
-                    console.log('Insumos necesarios:', serviceData.insumosNecesarios);
-                    
-                    if (serviceData.insumosNecesarios && serviceData.insumosNecesarios.length > 0) {
-                        for (const insumo of serviceData.insumosNecesarios) {
-                            console.log(`Descontando ${insumo.cantidadConsumida} del item de inventario ID:`, insumo.inventoryId);
-                            await Inventory.findByIdAndUpdate(insumo.inventoryId, {
-                                $inc: { cantidadStock: -insumo.cantidadConsumida }
-                            });
-                        }
-                    } else {
-                        console.log('⚠ Este servicio no tiene insumos necesarios configurados.');
+                if (serviceData && serviceData.insumosNecesarios) {
+                    for (const insumo of serviceData.insumosNecesarios) {
+                        await Inventory.findByIdAndUpdate(insumo.inventoryId, {
+                            $inc: { cantidadStock: -insumo.cantidadConsumida }
+                        });
                     }
-                } else {
-                    console.log('❌ No se encontró el servicio en la BD con el ID:', item.serviceId);
                 }
             }
         }
-
-        const newSale = new Sale({
-            clientName,
-            services,
-            metodoPago
-        });
+        const newSale = new Sale({ clientName, services, metodoPago });
         await newSale.save();
-
-        res.status(201).json({ message: 'Venta registrada e inventario actualizado con éxito', newSale });
+        res.status(201).json({ message: 'Venta registrada', newSale });
     } catch (err) {
-        console.error('Error al procesar la venta:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Editar una factura existente
+app.put('/api/sales/:id', async (req, res) => {
+    try {
+        const { clientName, metodoPago } = req.body;
+        const updatedSale = await Sale.findByIdAndUpdate(
+            req.params.id, 
+            { clientName, metodoPago }, 
+            { new: true }
+        );
+        res.json(updatedSale);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Limpiar todo el historial de ventas
+app.delete('/api/sales', async (req, res) => {
+    try {
+        await Sale.deleteMany({});
+        res.json({ message: 'Historial de ventas limpiado correctamente' });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
@@ -180,7 +178,7 @@ app.get('/api/closures', async (req, res) => {
         const cierres = await Closure.find().sort({ fechaCierre: -1 });
         res.json(cierres);
     } catch (err) {
-        res.status(500).json({ error: 'Error al obtener los cierres de caja' });
+        res.status(500).json({ error: 'Error al obtener los cierres' });
     }
 });
 
@@ -190,20 +188,16 @@ app.post('/api/closures', async (req, res) => {
         await nuevoCierre.save();
         res.status(201).json(nuevoCierre);
     } catch (err) {
-        res.status(500).json({ error: 'Error al guardar el cierre de caja' });
+        res.status(500).json({ error: 'Error al guardar el cierre' });
     }
 });
 
 
 // ==========================================
-// 3. ARCHIVOS ESTÁTICOS
+// 3. ARCHIVOS ESTÁTICOS Y PUERTO
 // ==========================================
 app.use(express.static('public'));
 
-
-// ==========================================
-// 4. INICIO DEL SERVIDOR
-// ==========================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);

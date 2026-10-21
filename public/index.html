@@ -263,8 +263,8 @@
             font-size: 1.05rem;
         }
 
-        /* MODAL DE TICKET PARA CELULAR BLUETOOTH */
-        #modalTicket {
+        /* MODALES */
+        #modalTicket, #modalEditarFactura {
             display: none;
             position: fixed;
             top: 0;
@@ -291,12 +291,22 @@
             overflow-y: auto;
         }
 
+        .modal-edit-content {
+            background: var(--surface-card);
+            color: var(--text-main);
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+        }
+
         /* OCULTAR EN PANTALLA LOS ELEMENTOS SOLO DE IMPRESIÓN */
         #ticketImpresion, #cierreImpresion {
             display: none !important;
         }
 
-        /* DISEÑO EXCLUSIVO PARA IMPRESIÓN TÉRMICA */
         @media print {
             body * {
                 visibility: hidden;
@@ -406,9 +416,7 @@
                 </form>
             </div>
 
-            <div class="card-list" id="listaServicios">
-                <!-- Se cargan dinámicamente -->
-            </div>
+            <div class="card-list" id="listaServicios"></div>
         </div>
 
         <!-- SECCIÓN FACTURACIÓN -->
@@ -422,9 +430,7 @@
                     </div>
                     <div class="form-group">
                         <label>Seleccionar Servicio Realizado</label>
-                        <select id="selectServicioVenta" required onchange="calcularCambio()">
-                            <!-- Se llena con los servicios -->
-                        </select>
+                        <select id="selectServicioVenta" required onchange="calcularCambio()"></select>
                     </div>
                     <div class="form-group">
                         <label>Método de Pago</label>
@@ -454,12 +460,13 @@
         <div id="historial" class="tab-content">
             <div class="card-panel">
                 <h2>Historial de Facturas y Ventas</h2>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;">
-                    Registro organizado de servicios cobrados por fecha, mes y año.
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
+                    Registro organizado por año, mes y día de la semana.
                 </p>
+                <button onclick="limpiarHistorialCompleto()" class="btn-primary" style="background: #a93226; color: white;">🗑️ Limpiar Todo el Historial</button>
             </div>
-            <div class="card-list" id="listaHistorial">
-                <!-- Se cargan dinámicamente -->
+            <div id="contenedorHistorialAgrupado">
+                <!-- Se cargan dinámicamente agrupados -->
             </div>
         </div>
 
@@ -488,9 +495,7 @@
                 </form>
             </div>
 
-            <div class="card-list" id="listaInventario">
-                <!-- Se cargan dinámicamente -->
-            </div>
+            <div class="card-list" id="listaInventario"></div>
         </div>
 
         <!-- SECCIÓN CIERRE DE CAJA -->
@@ -501,7 +506,6 @@
                     Ingresos acumulados desde el último cierre realizado.
                 </p>
 
-                <!-- Tarjetas de Totales -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                     <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
                         <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Acumulado</span>
@@ -513,7 +517,6 @@
                     </div>
                 </div>
 
-                <!-- Desglose por método de pago -->
                 <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 15px; font-size: 0.9rem;">
                     <p style="color: var(--gold); font-weight: 600; margin-bottom: 8px;">Desglose por Método de Pago:</p>
                     <p style="margin-bottom: 4px;">💵 Efectivo: <b id="cierreEfectivo">$0.00</b></p>
@@ -526,29 +529,46 @@
 
             <div class="card-panel" style="margin-top: 25px;">
                 <h2>Historial de Cierres de Caja</h2>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
-                    Cierres registrados anteriormente con su fecha y hora.
-                </p>
-                <div class="card-list" id="listaHistorialCierres">
-                    <!-- Historial de cierres guardados -->
-                </div>
+                <div class="card-list" id="listaHistorialCierres"></div>
             </div>
         </div>
 
     </div>
 
     <!-- VENTANA MODAL PARA COPIAR TICKET EN CELULAR BLUETOOTH -->
-    <div id="modalTicket" style="display:none;">
+    <div id="modalTicket">
         <div class="modal-ticket-content">
             <div style="text-align: center; font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
                 ESTHER LASHES
             </div>
-            <div id="textoTicketCelular" style="font-size: 11px; white-space: pre-line; margin-bottom: 12px; background: #f9f9f9; padding: 8px; border: 1px solid #ddd;">
-                <!-- Texto del ticket generado -->
-            </div>
+            <div id="textoTicketCelular" style="font-size: 11px; white-space: pre-line; margin-bottom: 12px; background: #f9f9f9; padding: 8px; border: 1px solid #ddd;"></div>
             <button onclick="copiarTextoTicket()" class="btn-primary" style="margin-bottom: 8px; font-size: 0.85rem; padding: 10px;">📋 Copiar para Impresora Bluetooth</button>
             <button onclick="window.print()" style="background: #333; color: #fff; border: none; padding: 10px; width: 100%; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; margin-bottom: 8px;">🖨️ Imprimir Estándar</button>
             <button onclick="cerrarModalTicket()" style="background: #ddd; color: #000; border: none; padding: 8px; width: 100%; border-radius: 8px; font-size: 0.8rem; cursor: pointer;">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- VENTANA MODAL PARA EDITAR FACTURA -->
+    <div id="modalEditarFactura">
+        <div class="modal-edit-content">
+            <h2 style="font-size: 1.1rem; margin-bottom: 15px;">Editar Factura</h2>
+            <form id="editSaleForm" onsubmit="guardarEdicionFactura(event)">
+                <input type="hidden" id="editSaleId">
+                <div class="form-group">
+                    <label>Nombre de la Clienta</label>
+                    <input type="text" id="editClientName" required>
+                </div>
+                <div class="form-group">
+                    <label>Método de Pago</label>
+                    <select id="editMetodoPago">
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Transferencia">Transferencia Bancaria</option>
+                        <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 10px;">Guardar Cambios</button>
+                <button type="button" onclick="cerrarModalEditar()" style="background: #333; color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 8px;">Cancelar</button>
+            </form>
         </div>
     </div>
 
@@ -623,9 +643,7 @@
             if (targetContent) targetContent.classList.add('active');
             
             const clickedButton = event ? event.currentTarget : document.querySelector(`button[onclick*="${tabId}"]`);
-            if (clickedButton) {
-                clickedButton.classList.add('active');
-            }
+            if (clickedButton) clickedButton.classList.add('active');
 
             if(tabId === 'servicios') { cargarServicios(); cargarOpcionesInsumos(); }
             if(tabId === 'inventario') cargarInventario();
@@ -637,11 +655,7 @@
         function toggleEfectivoFields() {
             const metodo = document.getElementById('metodoPago').value;
             const seccionEfectivo = document.getElementById('seccionEfectivo');
-            if (metodo === 'Efectivo') {
-                seccionEfectivo.style.display = 'block';
-            } else {
-                seccionEfectivo.style.display = 'none';
-            }
+            seccionEfectivo.style.display = (metodo === 'Efectivo') ? 'block' : 'none';
             calcularCambio();
         }
 
@@ -658,7 +672,6 @@
             const option = select.options[select.selectedIndex];
             const precioServicio = parseFloat(option.getAttribute('data-precio')) || 0;
             const efectivoRecibido = parseFloat(document.getElementById('efectivoRecibido').value) || 0;
-
             const cambio = efectivoRecibido - precioServicio;
 
             if (cambio >= 0) {
@@ -679,9 +692,7 @@
                 items.forEach(i => {
                     selectInsumo.innerHTML += `<option value="${i._id}">${i.nombreItem} (Stock actual: ${i.cantidadStock} ${i.unidadMedida})</option>`;
                 });
-            } catch(err) {
-                console.error("Error cargando selector de insumos", err);
-            }
+            } catch(err) { console.error(err); }
         }
 
         async function cargarServicios() {
@@ -712,30 +723,23 @@
                     selectVenta.innerHTML += `<option value="${s._id}" data-precio="${s.precio}" data-nombre="${s.nombre}">${s.nombre} — $${s.precio}</option>`;
                 });
                 calcularCambio();
-            } catch (err) {
-                console.error("Error cargando servicios", err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         document.getElementById('serviceForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const insumoId = document.getElementById('selectInsumoServicio').value;
             const cantidadConsumida = document.getElementById('cantidadConsumida').value;
-
             let insumosNecesarios = [];
             if (insumoId) {
-                insumosNecesarios.push({
-                    inventoryId: insumoId,
-                    cantidadConsumida: parseFloat(cantidadConsumida) || 1
-                });
+                insumosNecesarios.push({ inventoryId: insumoId, cantidadConsumida: parseFloat(cantidadConsumida) || 1 });
             }
 
             const data = {
                 nombre: document.getElementById('nombreServicio').value,
                 categoria: document.getElementById('categoriaServicio').value,
                 precio: document.getElementById('precioServicio').value,
-                insumosNecesarios: insumosNecesarios
+                insumosNecesarios
             };
 
             await fetch(`${API_URL}/services`, {
@@ -760,7 +764,7 @@
             e.preventDefault();
             const select = document.getElementById('selectServicioVenta');
             if(!select.options.length) {
-                alert('Primero debes registrar al menos un servicio en la pestaña Servicios.');
+                alert('Primero registra un servicio.');
                 return;
             }
             const option = select.options[select.selectedIndex];
@@ -769,9 +773,7 @@
             const cliente = document.getElementById('clientName').value;
             const metodoPago = document.getElementById('metodoPago').value;
             
-            let efectivoRecibido = 0;
-            let cambioDevuelto = 0;
-
+            let efectivoRecibido = 0, cambioDevuelto = 0;
             if (metodoPago === 'Efectivo') {
                 efectivoRecibido = parseFloat(document.getElementById('efectivoRecibido').value) || 0;
                 if (efectivoRecibido < precioServicio) {
@@ -783,12 +785,8 @@
             
             const saleData = {
                 clientName: cliente,
-                services: [{
-                    serviceId: option.value,
-                    nombreServicio: nombreServicio,
-                    precioUnitario: precioServicio
-                }],
-                metodoPago: metodoPago
+                services: [{ serviceId: option.value, nombreServicio, precioUnitario: precioServicio }],
+                metodoPago
             };
 
             const res = await fetch(`${API_URL}/sales`, {
@@ -819,26 +817,19 @@
                 }
 
                 const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${cliente}\nPago: ${metodoPago}\n--------------------------------\nServicio: ${nombreServicio}\nPrecio: $${precioServicio.toFixed(2)}\n--------------------------------\n${textoEfectivoTicket}   ¡Gracias por su visita!   `;
-                
                 document.getElementById('textoTicketCelular').innerText = textoPlano;
                 
                 alert('✨ ¡Factura generada e inventario descontado con éxito!');
                 document.getElementById('modalTicket').style.display = 'flex';
-
                 document.getElementById('saleForm').reset();
                 toggleEfectivoFields();
-            } else {
-                alert('Error al procesar la factura');
             }
         });
 
         function copiarTextoTicket() {
             const texto = document.getElementById('textoTicketCelular').innerText;
             navigator.clipboard.writeText(texto).then(() => {
-                alert('📋 ¡Texto copiado al portapapeles! Pégalo en tu aplicación de impresión Bluetooth (Gotogo).');
-            }).catch(err => {
-                console.error('Error al copiar texto', err);
-                alert('No se pudo copiar automáticamente, selecciónalo manualmente.');
+                alert('📋 ¡Texto copiado al portapapeles! Pégalo en tu impresora Bluetooth.');
             });
         }
 
@@ -846,197 +837,118 @@
             document.getElementById('modalTicket').style.display = 'none';
         }
 
-        async function cargarCierreDiario() {
-            try {
-                const resVentas = await fetch(`${API_URL}/sales`);
-                const ventas = await resVentas.json();
-
-                const resCierres = await fetch(`${API_URL}/closures`);
-                const cierres = await resCierres.json();
-
-                let ultimaFechaCierre = cierres.length > 0 ? new Date(cierres[0].fechaCierre) : new Date(0);
-
-                ventasCajaActual = ventas.filter(v => new Date(v.createdAt) > ultimaFechaCierre);
-
-                let totalIngresos = 0;
-                let cantidadServicios = 0;
-                let totalEfectivo = 0;
-                let totalTransferencia = 0;
-                let totalTarjeta = 0;
-
-                ventasCajaActual.forEach(v => {
-                    const subtotalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
-                    totalIngresos += subtotalVenta;
-                    cantidadServicios += v.services.length;
-
-                    if (v.metodoPago === 'Efectivo') totalEfectivo += subtotalVenta;
-                    if (v.metodoPago === 'Transferencia') totalTransferencia += subtotalVenta;
-                    if (v.metodoPago === 'Tarjeta') totalTarjeta += subtotalVenta;
-                });
-
-                document.getElementById('cierreTotal').innerText = `$${totalIngresos.toFixed(2)}`;
-                document.getElementById('cierreCantidadServicios').innerText = cantidadServicios;
-                document.getElementById('cierreEfectivo').innerText = `$${totalEfectivo.toFixed(2)}`;
-                document.getElementById('cierreTransferencia').innerText = `$${totalTransferencia.toFixed(2)}`;
-                document.getElementById('cierreTarjeta').innerText = `$${totalTarjeta.toFixed(2)}`;
-
-            } catch (err) {
-                console.error("Error cargando cierre diario", err);
-            }
-        }
-
-        async function procesarCierreDeCaja() {
-            const totalText = document.getElementById('cierreTotal').innerText;
-            if (totalText === '$0.00' || ventasCajaActual.length === 0) {
-                alert('⚠️ No hay ventas registradas en la caja actual para realizar un cierre.');
-                return;
-            }
-
-            if (!confirm('🔒 ¿Confirmas que deseas cerrar la caja actual? Esto guardará el resumen y reiniciará la caja a $0.00.')) {
-                return;
-            }
-
-            const totalIngresos = parseFloat(totalText.replace('$', '')) || 0;
-            const cantidadServicios = parseInt(document.getElementById('cierreCantidadServicios').innerText) || 0;
-            const totalEfectivo = parseFloat(document.getElementById('cierreEfectivo').innerText.replace('$', '')) || 0;
-            const totalTransferencia = parseFloat(document.getElementById('cierreTransferencia').innerText.replace('$', '')) || 0;
-            const totalTarjeta = parseFloat(document.getElementById('cierreTarjeta').innerText.replace('$', '')) || 0;
-
-            const datosCierre = {
-                totalIngresos,
-                cantidadServicios,
-                totalEfectivo,
-                totalTransferencia,
-                totalTarjeta,
-                ventasIncluidas: ventasCajaActual
-            };
-
-            const res = await fetch(`${API_URL}/closures`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(datosCierre)
-            });
-
-            if (res.ok) {
-                alert('✨ ¡Cierre de caja realizado y guardado exitosamente!');
-                cargarCierreDiario();
-                cargarHistorialCierres();
-            } else {
-                alert('Error al guardar el cierre de caja');
-            }
-        }
-
-        async function cargarHistorialCierres() {
-            try {
-                const res = await fetch(`${API_URL}/closures`);
-                const cierres = await res.json();
-                const contenedor = document.getElementById('listaHistorialCierres');
-                contenedor.innerHTML = '';
-
-                if (cierres.length === 0) {
-                    contenedor.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 15px;">No hay cierres de caja registrados en el historial.</p>`;
-                    return;
-                }
-
-                cierres.forEach((c) => {
-                    const fechaObj = new Date(c.fechaCierre);
-                    const fechaStr = fechaObj.toLocaleDateString('es-ES', { 
-                        weekday: 'long', 
-                        day: '2-digit', 
-                        month: 'long', 
-                        year: 'numeric' 
-                    });
-                    const horaStr = fechaObj.toLocaleTimeString('es-ES', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    });
-
-                    contenedor.innerHTML += `
-                        <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                            <div style="display: flex; justify-content: space-between; width: 100%; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
-                                <h4 style="color: var(--gold); text-transform: capitalize;">🔒 ${fechaStr} (${horaStr})</h4>
-                                <span class="price-tag">$${c.totalIngresos.toFixed(2)}</span>
-                            </div>
-                            <div style="font-size: 0.85rem; color: var(--text-main); display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: 100%;">
-                                <span>💵 Efectivo: <b>$${c.totalEfectivo.toFixed(2)}</b></span>
-                                <span>🏦 Transferencia: <b>$${c.totalTransferencia.toFixed(2)}</b></span>
-                                <span>💳 Tarjeta: <b>$${c.totalTarjeta.toFixed(2)}</b></span>
-                                <span>💇 Serv. Realizados: <b>${c.cantidadServicios}</b></span>
-                            </div>
-                            <button onclick="reimprimirCierre('${c._id}')" style="margin-top: 5px; background: #222; color: var(--gold); border: 1px solid var(--gold); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%;">🖨️ Imprimir Ticket de este Cierre</button>
-                        </div>
-                    `;
-                });
-            } catch (err) {
-                console.error("Error cargando historial de cierres", err);
-            }
-        }
-
-        async function reimprimirCierre(cierreId) {
-            try {
-                const res = await fetch(`${API_URL}/closures`);
-                const cierres = await res.json();
-                const cierre = cierres.find(c => c._id === cierreId);
-
-                if (cierre) {
-                    const fechaObj = new Date(cierre.fechaCierre);
-                    document.getElementById('cierrePrintFecha').innerText = fechaObj.toLocaleDateString() + ' ' + fechaObj.toLocaleTimeString();
-                    document.getElementById('cierrePrintTotal').innerText = `$${cierre.totalIngresos.toFixed(2)}`;
-                    document.getElementById('cierrePrintCantidad').innerText = cierre.cantidadServicios;
-                    document.getElementById('cierrePrintEfectivo').innerText = `$${cierre.totalEfectivo.toFixed(2)}`;
-                    document.getElementById('cierrePrintTransferencia').innerText = `$${cierre.totalTransferencia.toFixed(2)}`;
-                    document.getElementById('cierrePrintTarjeta').innerText = `$${cierre.totalTarjeta.toFixed(2)}`;
-
-                    window.print();
-                }
-            } catch (err) {
-                console.error("Error al reimprimir cierre", err);
-            }
-        }
-
+        // FUNCIONES DE HISTORIAL AGRUPADO POR AÑO, MES Y DÍA
         async function cargarHistorial() {
             try {
                 const res = await fetch(`${API_URL}/sales`);
                 const ventas = await res.json();
-                const contenedor = document.getElementById('listaHistorial');
+                const contenedor = document.getElementById('contenedorHistorialAgrupado');
                 contenedor.innerHTML = '';
 
                 if (ventas.length === 0) {
-                    contenedor.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 20px;">No hay facturas registradas todavía.</p>`;
+                    contenedor.innerHTML = `<div class="card-panel"><p style="color: var(--text-muted); text-align: center;">No hay facturas registradas todavía.</p></div>`;
                     return;
                 }
 
+                // Agrupar por Año -> Mes -> Día de la semana/fecha
+                let agrupado = {};
                 ventas.forEach(v => {
                     const fechaObj = new Date(v.createdAt || Date.now());
-                    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { 
-                        day: '2-digit', 
-                        month: 'long', 
-                        year: 'numeric' 
-                    });
-                    const horaFormateada = fechaObj.toLocaleTimeString('es-ES', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    });
+                    const anio = fechaObj.getFullYear();
+                    const mes = fechaObj.toLocaleString('es-ES', { month: 'long' });
+                    const diaCompleto = fechaObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-                    const totalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
-                    const detalleServicios = v.services.map(s => s.nombreServicio).join(', ');
+                    if (!agrupado[anio]) agrupado[anio] = {};
+                    if (!agrupado[anio][mes]) agrupado[anio][mes] = {};
+                    if (!agrupado[anio][mes][diaCompleto]) agrupado[anio][mes][diaCompleto] = [];
 
-                    contenedor.innerHTML += `
-                        <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                            <div style="display: flex; justify-content: space-between; width: 100%;">
-                                <h4 style="color: var(--gold);">${v.clientName}</h4>
-                                <span class="price-tag">$${totalVenta.toFixed(2)}</span>
-                            </div>
-                            <p style="font-size: 0.9rem;"><b>Servicio(s):</b> ${detalleServicios}</p>
-                            <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
-                                <span>📅 ${fechaFormateada} — ⏰ ${horaFormateada}</span>
-                                <span class="badge">Pago: ${v.metodoPago}</span>
-                            </div>
-                        </div>
-                    `;
+                    agrupado[anio][mes][diaCompleto].push(v);
                 });
-            } catch (err) {
-                console.error("Error cargando historial", err);
+
+                // Renderizar estructura agrupada
+                for (let anio in agrupado) {
+                    for (let mes in agrupado[anio]) {
+                        for (let dia in agrupado[anio][mes]) {
+                            let htmlVentas = '';
+                            agrupado[anio][mes][dia].forEach(v => {
+                                const totalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
+                                const detalleServicios = v.services.map(s => s.nombreServicio).join(', ');
+                                const horaFormateada = new Date(v.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+                                htmlVentas += `
+                                    <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                        <div style="display: flex; justify-content: space-between; width: 100%;">
+                                            <h4 style="color: var(--gold);">${v.clientName}</h4>
+                                            <span class="price-tag">$${totalVenta.toFixed(2)}</span>
+                                        </div>
+                                        <p style="font-size: 0.9rem;"><b>Servicio(s):</b> ${detalleServicios}</p>
+                                        <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px; align-items: center;">
+                                            <span>⏰ ${horaFormateada} — <span class="badge">Pago: ${v.metodoPago}</span></span>
+                                            <button onclick="abrirModalEditar('${v._id}', '${v.clientName}', '${v.metodoPago}')" style="background: #2a2a2a; color: var(--gold); border: 1px solid var(--gold); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✏️ Editar</button>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+
+                            contenedor.innerHTML += `
+                                <div class="card-panel" style="margin-bottom: 15px;">
+                                    <h3 style="color: var(--gold-light); font-size: 1rem; text-transform: capitalize; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 10px;">
+                                        📅 ${dia}
+                                    </h3>
+                                    <div class="card-list" style="margin-top: 0;">
+                                        ${htmlVentas}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        // EDITAR FACTURA
+        function abrirModalEditar(id, cliente, metodo) {
+            document.getElementById('editSaleId').value = id;
+            document.getElementById('editClientName').value = cliente;
+            document.getElementById('editMetodoPago').value = metodo;
+            document.getElementById('modalEditarFactura').style.display = 'flex';
+        }
+
+        function cerrarModalEditar() {
+            document.getElementById('modalEditarFactura').style.display = 'none';
+        }
+
+        async function guardarEdicionFactura(e) {
+            e.preventDefault();
+            const id = document.getElementById('editSaleId').value;
+            const clientName = document.getElementById('editClientName').value;
+            const metodoPago = document.getElementById('editMetodoPago').value;
+
+            const res = await fetch(`${API_URL}/sales/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clientName, metodoPago })
+            });
+
+            if (res.ok) {
+                alert('✨ Factura actualizada con éxito');
+                cerrarModalEditar();
+                cargarHistorial();
+            } else {
+                alert('Error al actualizar la factura');
+            }
+        }
+
+        // LIMPIAR TODO EL HISTORIAL
+        async function limpiarHistorialCompleto() {
+            if (confirm('⚠️ ¿Estás segura de que deseas ELIMINAR TODO EL HISTORIAL DE FACTURAS? Esta acción no se puede deshacer.')) {
+                const res = await fetch(`${API_URL}/sales`, { method: 'DELETE' });
+                if (res.ok) {
+                    alert('🗑️ Historial limpiado exitosamente.');
+                    cargarHistorial();
+                } else {
+                    alert('Error al limpiar el historial.');
+                }
             }
         }
 
@@ -1046,7 +958,6 @@
                 const items = await res.json();
                 const contenedor = document.getElementById('listaInventario');
                 contenedor.innerHTML = '';
-
                 items.forEach(i => {
                     contenedor.innerHTML += `
                         <div class="card-item">
@@ -1058,9 +969,95 @@
                         </div>
                     `;
                 });
-            } catch (err) {
-                console.error("Error cargando inventario", err);
+            } catch (err) { console.error(err); }
+        }
+
+        async function cargarCierreDiario() {
+            try {
+                const resVentas = await fetch(`${API_URL}/sales`);
+                const ventas = await resVentas.json();
+                const resCierres = await fetch(`${API_URL}/closures`);
+                const cierres = await resCierres.json();
+
+                let ultimaFechaCierre = cierres.length > 0 ? new Date(cierres[0].fechaCierre) : new Date(0);
+                ventasCajaActual = ventas.filter(v => new Date(v.createdAt) > ultimaFechaCierre);
+
+                let totalIngresos = 0, cantidadServicios = 0, totalEfectivo = 0, totalTransferencia = 0, totalTarjeta = 0;
+                ventasCajaActual.forEach(v => {
+                    const subtotalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
+                    totalIngresos += subtotalVenta;
+                    cantidadServicios += v.services.length;
+                    if (v.metodoPago === 'Efectivo') totalEfectivo += subtotalVenta;
+                    if (v.metodoPago === 'Transferencia') totalTransferencia += subtotalVenta;
+                    if (v.metodoPago === 'Tarjeta') totalTarjeta += subtotalVenta;
+                });
+
+                document.getElementById('cierreTotal').innerText = `$${totalIngresos.toFixed(2)}`;
+                document.getElementById('cierreCantidadServicios').innerText = cantidadServicios;
+                document.getElementById('cierreEfectivo').innerText = `$${totalEfectivo.toFixed(2)}`;
+                document.getElementById('cierreTransferencia').innerText = `$${totalTransferencia.toFixed(2)}`;
+                document.getElementById('cierreTarjeta').innerText = `$${totalTarjeta.toFixed(2)}`;
+            } catch (err) { console.error(err); }
+        }
+
+        async function procesarCierreDeCaja() {
+            const totalText = document.getElementById('cierreTotal').innerText;
+            if (totalText === '$0.00' || ventasCajaActual.length === 0) {
+                alert('⚠️ No hay ventas registradas en la caja actual.');
+                return;
             }
+
+            if (!confirm('🔒 ¿Confirmas el cierre de caja? Esto guardará el reporte y reiniciará la caja a $0.00.')) return;
+
+            const datosCierre = {
+                totalIngresos: parseFloat(totalText.replace('$', '')) || 0,
+                cantidadServicios: parseInt(document.getElementById('cierreCantidadServicios').innerText) || 0,
+                totalEfectivo: parseFloat(document.getElementById('cierreEfectivo').innerText.replace('$', '')) || 0,
+                totalTransferencia: parseFloat(document.getElementById('cierreTransferencia').innerText.replace('$', '')) || 0,
+                totalTarjeta: parseFloat(document.getElementById('cierreTarjeta').innerText.replace('$', '')) || 0,
+                ventasIncluidas: ventasCajaActual
+            };
+
+            const res = await fetch(`${API_URL}/closures`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datosCierre)
+            });
+
+            if (res.ok) {
+                alert('✨ ¡Cierre de caja guardado con éxito!');
+                cargarCierreDiario();
+                cargarHistorialCierres();
+            }
+        }
+
+        async function cargarHistorialCierres() {
+            try {
+                const res = await fetch(`${API_URL}/closures`);
+                const cierres = await res.json();
+                const contenedor = document.getElementById('listaHistorialCierres');
+                contenedor.innerHTML = '';
+                if (cierres.length === 0) {
+                    contenedor.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 15px;">No hay cierres registrados.</p>`;
+                    return;
+                }
+                cierres.forEach((c) => {
+                    const fechaObj = new Date(c.fechaCierre);
+                    const fechaStr = fechaObj.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+                    contenedor.innerHTML += `
+                        <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; width: 100%; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+                                <h4 style="color: var(--gold); text-transform: capitalize;">🔒 ${fechaStr}</h4>
+                                <span class="price-tag">$${c.totalIngresos.toFixed(2)}</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-main); display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: 100%;">
+                                <span>💵 Efectivo: <b>$${c.totalEfectivo.toFixed(2)}</b></span>
+                                <span>🏦 Transferencia: <b>$${c.totalTransferencia.toFixed(2)}</b></span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) { console.error(err); }
         }
 
         document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
@@ -1071,20 +1068,17 @@
                 unidadMedida: document.getElementById('unidadMedida').value,
                 precioCompra: document.getElementById('precioCompra').value
             };
-
             await fetch(`${API_URL}/inventory`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(itemData)
             });
-
             document.getElementById('inventoryForm').reset();
             cargarInventario();
             cargarOpcionesInsumos();
-            alert('✨ Insumo agregado al inventario.');
+            alert('✨ Insumo agregado.');
         });
 
-        // Inicialización al cargar la página
         cargarServicios();
         cargarOpcionesInsumos();
         toggleEfectivoFields();
