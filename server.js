@@ -13,14 +13,16 @@ const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/esther_l
 const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_esther_lashes_2026';
 
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('✨ Conectado exitosamente a MongoDB en la nube'))
+    .then(async () => {
+        console.log('✨ Conectado exitosamente a MongoDB en la nube');
+        await crearAdminInicial();
+    })
     .catch(err => console.log('Error de conexión:', err));
 
 // ==========================================
 // 1. MODELOS DE MONGOOSE
 // ==========================================
 
-// Modelo de Usuarios
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -29,7 +31,6 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// Servicios
 const ServiceSchema = new mongoose.Schema({
     nombre: { type: String, required: true },
     categoria: { type: String, required: true },
@@ -41,7 +42,6 @@ const ServiceSchema = new mongoose.Schema({
 });
 const Service = mongoose.model('Service', ServiceSchema);
 
-// Inventario
 const InventorySchema = new mongoose.Schema({
     nombreItem: { type: String, required: true },
     cantidadStock: { type: Number, required: true },
@@ -50,7 +50,6 @@ const InventorySchema = new mongoose.Schema({
 });
 const Inventory = mongoose.model('Inventory', InventorySchema);
 
-// Ventas
 const SaleSchema = new mongoose.Schema({
     clientName: { type: String, required: true },
     services: [{
@@ -63,7 +62,6 @@ const SaleSchema = new mongoose.Schema({
 });
 const Sale = mongoose.model('Sale', SaleSchema);
 
-// Cierres de Caja
 const closureSchema = new mongoose.Schema({
     totalIngresos: Number,
     cantidadServicios: Number,
@@ -77,30 +75,32 @@ const Closure = mongoose.model('Closure', closureSchema);
 
 
 // ==========================================
-// 2. RUTAS DE AUTENTICACIÓN
+// CREAR ADMIN AUTOMÁTICO SI NO EXISTE
+// ==========================================
+async function crearAdminInicial() {
+    try {
+        const count = await User.countDocuments();
+        if (count === 0) {
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+            const admin = new User({
+                username: 'admin',
+                password: hashedPassword,
+                role: 'admin'
+            });
+            await admin.save();
+            console.log('👑 Usuario Administrador inicial creado: admin / admin123');
+        }
+    } catch (err) {
+        console.error('Error al crear admin inicial:', err);
+    }
+}
+
+
+// ==========================================
+// 2. RUTAS DE AUTENTICACIÓN Y USUARIOS
 // ==========================================
 
-// Registrar nuevo usuario (Primer registro o admins)
-app.post('/api/auth/register', async (req, res) => {
-    try {
-        const { username, password, role } = req.body;
-        
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
-            return res.status(400).json({ error: 'El nombre de usuario ya existe.' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword, role });
-        await newUser.save();
-
-        res.status(201).json({ message: 'Usuario creado con éxito' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Login
+// Login público
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -122,6 +122,36 @@ app.post('/api/auth/login', async (req, res) => {
         );
 
         res.json({ token, user: { username: user.username, role: user.role } });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Registrar nuevo usuario (RUTA INTERNA PARA ADMINS)
+app.post('/api/users', async (req, res) => {
+    try {
+        const { username, password, role } = req.body;
+        
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ error: 'El nombre de usuario ya existe.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, password: hashedPassword, role });
+        await newUser.save();
+
+        res.status(201).json({ message: 'Usuario creado con éxito' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener lista de usuarios
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await User.find({}, '-password');
+        res.json(users);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
