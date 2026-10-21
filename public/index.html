@@ -291,9 +291,9 @@
             overflow-y: auto;
         }
 
-        /* CONTENEDOR OCULTO PARA IMPRESIÓN DE CIERRE DE CAJA */
-        #cierreImpresion {
-            display: none;
+        /* OCULTAR EN PANTALLA LOS ELEMENTOS SOLO DE IMPRESIÓN */
+        #ticketImpresion, #cierreImpresion {
+            display: none !important;
         }
 
         /* DISEÑO EXCLUSIVO PARA IMPRESIÓN TÉRMICA */
@@ -854,7 +854,6 @@
                 const resCierres = await fetch(`${API_URL}/closures`);
                 const cierres = await resCierres.json();
 
-                // Filtrar ventas posteriores al último cierre realizado
                 let ultimaFechaCierre = cierres.length > 0 ? new Date(cierres[0].fechaCierre) : new Date(0);
 
                 ventasCajaActual = ventas.filter(v => new Date(v.createdAt) > ultimaFechaCierre);
@@ -939,7 +938,7 @@
                     return;
                 }
 
-                cierres.forEach((c, index) => {
+                cierres.forEach((c) => {
                     const fechaObj = new Date(c.fechaCierre);
                     const fechaStr = fechaObj.toLocaleDateString('es-ES', { 
                         weekday: 'long', 
