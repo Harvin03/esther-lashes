@@ -253,21 +253,23 @@
             border: 1px solid rgba(212, 175, 55, 0.2);
         }
 
-        #modalTicket, #modalEditarFacturaticket {
+        /* MODALES CORREGIDOS: Ocultos por defecto y se muestran con flex al abrirlos */
+        #modalTicket, #modalEditarFactura {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             background: rgba(0,0,0,0.85);
-            z-index: 1000;
+            z-index: 99999;
             justify-content: center;
             align-items: center;
             padding: 15px;
+            overflow-y: auto;
         }
 
-        .modal-ticket-content, .modal-edit-content {
+        .modal-ticket-content {
             background: #ffffff;
             color: #000;
             width: 100%;
@@ -275,15 +277,21 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            max-height: 90vh;
-            overflow-y: auto;
+            margin: auto;
         }
 
         .modal-edit-content {
             background: var(--surface-card);
             color: var(--text-main);
-            max-width: 420px;
+            width: 100%;
+            max-width: 450px;
+            padding: 25px;
+            border-radius: 16px;
             border: 1px solid var(--border);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+            margin: auto;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         @media print {
@@ -1410,7 +1418,7 @@
             }
 
             if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este cierre de caja específico?')) {
-                const res = await fetch(`${API_URL}/closures/${id}`, { method: 'DELETE' });
+                const res = await fetch(`${API_URL}/closures/${id}`, { method: 'DELETE'LAYER });
                 if (res.ok) {
                     alert('🗑️ Cierre de caja eliminado con éxito.');
                     cargarHistorialCierres();
