@@ -405,10 +405,27 @@
                             <label>Nombre de la Clienta</label>
                             <input type="text" id="clientName" required placeholder="Nombre completo">
                         </div>
-                        <div class="form-group">
-                            <label>Seleccionar Servicio Realizado</label>
-                            <select id="selectServicioVenta" required onchange="calcularCambio()"></select>
+                        
+                        <div class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
+                            <label style="color: var(--gold);">Agregar Servicios a la Factura</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="selectServicioVenta" style="flex: 2;"></select>
+                                <button type="button" onclick="agregarServicioAFactura()" style="flex: 1; background: var(--gold); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">➕ Agregar</button>
+                            </div>
                         </div>
+
+                        <!-- Lista de servicios seleccionados para la venta actual -->
+                        <div class="form-group">
+                            <label>Servicios en esta Factura:</label>
+                            <div id="listaServiciosFactura" style="background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-height: 50px; margin-bottom: 10px;">
+                                <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Ningún servicio agregado aún.</p>
+                            </div>
+                            <div style="font-size: 1.1rem; text-align: right; margin-bottom: 15px;">
+                                <span>Total a Pagar: </span>
+                                <strong id="totalFactura" style="color: var(--gold); font-size: 1.3rem;">$0.00</strong>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label>Método de Pago</label>
                             <select id="metodoPago" onchange="toggleEfectivoFields()">
@@ -570,7 +587,8 @@
                     </select>
                 </div>
                 <button type="submit" class="btn-primary" style="margin-top: 10px;">Guardar Cambios</button>
-                <button type="button" onclick="cerrarModalEditar()" style="background: #333; color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 8px;">Cancelar</button>
+                <button type="button" onclick="reImprimirFacturaActual()" style="background: #2a2a2a; color: var(--gold); border: 1px solid var(--gold); padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 8px;">🖨️ Re-imprimir Ticket</button>
+                <button type="button" onclick="cerrarModalEditar()" style="background: #333; color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 8px;">Cerrar</button>
             </form>
         </div>
     </div>
@@ -578,6 +596,8 @@
     <script>
         const API_URL = '/api';
         let ventasCajaActual = [];
+        let serviciosSeleccionadosVenta = [];
+        let facturaEnEdicion = null;
 
         function checkSession() {
             const token = localStorage.getItem('token');
@@ -725,7 +745,7 @@
             if(tabId === 'servicios') { cargarServicios(); cargarOpcionesInsumos(); }
             if(tabId === 'inventario') cargarInventario();
             if(tabId === 'historial') cargarHistorial();
-            if(tabId === 'facturacion') { cargarServicios(); calcularCambio(); }
+            if(tabId === 'facturacion') { cargarServicios(); }
             if(tabId === 'cierre') { cargarCierreDiario(); cargarHistorialCierres(); }
             if(tabId === 'usuarios') { cargarUsuariosList(); }
         }
@@ -736,20 +756,64 @@
             calcularCambio();
         }
 
-        function calcularCambio() {
+        function agregarServicioAFactura() {
             const select = document.getElementById('selectServicioVenta');
+            if (!select.options.length) return;
+            const option = select.options[select.selectedIndex];
+            
+            const serviceId = option.value;
+            const nombreServicio = option.getAttribute('data-nombre');
+            const precioUnitario = parseFloat(option.getAttribute('data-precio'));
+
+            serviciosSeleccionadosVenta.push({ serviceId, nombreServicio, precioUnitario });
+            actualizarListaServiciosFactura();
+        }
+
+        function quitarServicioDeFactura(index) {
+            serviciosSeleccionadosVenta.splice(index, 1);
+            actualizarListaServiciosFactura();
+        }
+
+        function actualizarListaServiciosFactura() {
+            const contenedor = document.getElementById('listaServiciosFactura');
+            const totalTag = document.getElementById('totalFactura');
+            contenedor.innerHTML = '';
+
+            if (serviciosSeleccionadosVenta.length === 0) {
+                contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Ningún servicio agregado aún.</p>`;
+                totalTag.innerText = '$0.00';
+                calcularCambio();
+                return;
+            }
+
+            let total = 0;
+            serviciosSeleccionadosVenta.forEach((s, index) => {
+                total += s.precioUnitario;
+                contenedor.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                        <span>${s.nombreServicio} — <b style="color: var(--gold);">$${s.precioUnitario.toFixed(2)}</b></span>
+                        <button type="button" onclick="quitarServicioDeFactura(${index})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-weight: bold;">❌</button>
+                    </div>
+                `;
+            });
+
+            totalTag.innerText = `$${total.toFixed(2)}`;
+            calcularCambio();
+        }
+
+        function calcularCambio() {
             const metodo = document.getElementById('metodoPago').value;
             const spanCambio = document.getElementById('cambioDevolver');
             
-            if (!select || select.selectedIndex === -1 || metodo !== 'Efectivo') {
+            const totalVenta = serviciosSeleccionadosVenta.reduce((acc, s) => acc + s.precioUnitario, 0);
+
+            if (metodo !== 'Efectivo') {
                 spanCambio.innerText = '$0.00';
                 return;
             }
 
-            const option = select.options[select.selectedIndex];
-            const precioServicio = parseFloat(option.getAttribute('data-precio')) || 0;
             const efectivoRecibido = parseFloat(document.getElementById('efectivoRecibido').value) || 0;
-            const cambio = efectivoRecibido - precioServicio;
+            const cambio = efectivoRecibido - totalVenta;
 
             if (cambio >= 0) {
                 spanCambio.innerText = `$${cambio.toFixed(2)}`;
@@ -805,7 +869,6 @@
                     `;
                     selectVenta.innerHTML += `<option value="${s._id}" data-precio="${s.precio}" data-nombre="${s.nombre}">${s.nombre} — $${s.precio}</option>`;
                 });
-                calcularCambio();
             } catch (err) { console.error(err); }
         }
 
@@ -851,30 +914,28 @@
 
         document.getElementById('saleForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const select = document.getElementById('selectServicioVenta');
-            if(!select.options.length) {
-                alert('Primero registra un servicio.');
+            if (serviciosSeleccionadosVenta.length === 0) {
+                alert('⚠️ Debes agregar al menos un servicio a la factura.');
                 return;
             }
-            const option = select.options[select.selectedIndex];
-            const precioServicio = parseFloat(option.getAttribute('data-precio'));
-            const nombreServicio = option.getAttribute('data-nombre');
+            
             const cliente = document.getElementById('clientName').value;
             const metodoPago = document.getElementById('metodoPago').value;
+            const totalVenta = serviciosSeleccionadosVenta.reduce((acc, s) => acc + s.precioUnitario, 0);
             
             let efectivoRecibido = 0, cambioDevuelto = 0;
             if (metodoPago === 'Efectivo') {
                 efectivoRecibido = parseFloat(document.getElementById('efectivoRecibido').value) || 0;
-                if (efectivoRecibido < precioServicio) {
-                    alert('⚠️ El efectivo recibido es menor al valor del procedimiento.');
+                if (efectivoRecibido < totalVenta) {
+                    alert('⚠️ El efectivo recibido es menor al total de la factura.');
                     return;
                 }
-                cambioDevuelto = efectivoRecibido - precioServicio;
+                cambioDevuelto = efectivoRecibido - totalVenta;
             }
             
             const saleData = {
                 clientName: cliente,
-                services: [{ serviceId: option.value, nombreServicio, precioUnitario: precioServicio }],
+                services: serviciosSeleccionadosVenta,
                 metodoPago
             };
 
@@ -888,17 +949,24 @@
                 const ahora = new Date();
                 const fechaStr = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString();
 
+                let textoServiciosTicket = "";
+                serviciosSeleccionadosVenta.forEach(s => {
+                    textoServiciosTicket += `- ${s.nombreServicio}: $${s.precioUnitario.toFixed(2)}\n`;
+                });
+
                 let textoEfectivoTicket = "";
                 if (metodoPago === 'Efectivo') {
                     textoEfectivoTicket = `Efectivo Recibido: $${efectivoRecibido.toFixed(2)}\nCambio Devuelto: $${cambioDevuelto.toFixed(2)}\n`;
                 }
 
-                const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${cliente}\nPago: ${metodoPago}\n--------------------------------\nServicio: ${nombreServicio}\nPrecio: $${precioServicio.toFixed(2)}\n--------------------------------\n${textoEfectivoTicket}   ¡Gracias por su visita!   `;
+                const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${cliente}\nPago: ${metodoPago}\n--------------------------------\nServicios:\n${textoServiciosTicket}--------------------------------\nTOTAL: $${totalVenta.toFixed(2)}\n--------------------------------\n${textoEfectivoTicket}   ¡Gracias por su visita!   `;
                 document.getElementById('textoTicketCelular').innerText = textoPlano;
                 
                 alert('✨ ¡Factura generada e inventario descontado con éxito!');
                 document.getElementById('modalTicket').style.display = 'flex';
                 document.getElementById('saleForm').reset();
+                serviciosSeleccionadosVenta = [];
+                actualizarListaServiciosFactura();
                 toggleEfectivoFields();
             }
         });
@@ -952,7 +1020,7 @@
 
                                 let botonEditar = '';
                                 if (userSession.role === 'admin') {
-                                    botonEditar = `<button onclick="abrirModalEditar('${v._id}', '${v.clientName}', '${v.metodoPago}')" style="background: #2a2a2a; color: var(--gold); border: 1px solid var(--gold); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✏️ Editar</button>`;
+                                    botonEditar = `<button onclick='abrirModalEditar(${JSON.stringify(v)})' style="background: #2a2a2a; color: var(--gold); border: 1px solid var(--gold); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✏️ Editar / Ticket</button>`;
                                 }
 
                                 htmlVentas += `
@@ -986,20 +1054,22 @@
             } catch (err) { console.error(err); }
         }
 
-        function abrirModalEditar(id, cliente, metodo) {
+        function abrirModalEditar(venta) {
             const userSession = JSON.parse(localStorage.getItem('user') || '{}');
             if (userSession.role !== 'admin') {
                 alert('⚠️ Solo los administradores pueden editar facturas.');
                 return;
             }
-            document.getElementById('editSaleId').value = id;
-            document.getElementById('editClientName').value = cliente;
-            document.getElementById('editMetodoPago').value = metodo;
+            facturaEnEdicion = venta;
+            document.getElementById('editSaleId').value = venta._id;
+            document.getElementById('editClientName').value = venta.clientName;
+            document.getElementById('editMetodoPago').value = venta.metodoPago;
             document.getElementById('modalEditarFactura').style.display = 'flex';
         }
 
         function cerrarModalEditar() {
             document.getElementById('modalEditarFactura').style.display = 'none';
+            facturaEnEdicion = null;
         }
 
         async function guardarEdicionFactura(e) {
@@ -1021,6 +1091,26 @@
             } else {
                 alert('Error al actualizar la factura');
             }
+        }
+
+        function reImprimirFacturaActual() {
+            if (!facturaEnEdicion) return;
+            const v = facturaEnEdicion;
+            const fechaObj = new Date(v.createdAt || Date.now());
+            const fechaStr = fechaObj.toLocaleDateString() + ' ' + fechaObj.toLocaleTimeString();
+
+            let textoServiciosTicket = "";
+            let totalVenta = 0;
+            v.services.forEach(s => {
+                totalVenta += s.precioUnitario;
+                textoServiciosTicket += `- ${s.nombreServicio}: $${s.precioUnitario.toFixed(2)}\n`;
+            });
+
+            const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${v.clientName}\nPago: ${v.metodoPago}\n--------------------------------\nServicios:\n${textoServiciosTicket}--------------------------------\nTOTAL: $${totalVenta.toFixed(2)}\n--------------------------------\n   ¡Gracias por su visita!   `;
+            
+            document.getElementById('textoTicketCelular').innerText = textoPlano;
+            cerrarModalEditar();
+            document.getElementById('modalTicket').style.display = 'flex';
         }
 
         async function limpiarHistorialCompleto() {

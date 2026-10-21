@@ -171,7 +171,6 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
-// Eliminar un usuario creado (Exclusivo Admin)
 app.delete('/api/users/:id', async (req, res) => {
     try {
         await User.findByIdAndDelete(req.params.id);
