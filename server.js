@@ -280,12 +280,13 @@ app.post('/api/closures', async (req, res) => {
     }
 });
 
-app.delete('/api/closures', async (req, res) => {
+// Eliminar un cierre de caja específico
+app.delete('/api/closures/:id', async (req, res) => {
     try {
-        await Closure.deleteMany({});
-        res.json({ message: 'Historial de cierres limpiado correctamente' });
+        await Closure.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Cierre de caja eliminado correctamente' });
     } catch (err) {
-        res.status(500).json({ error: 'Error al limpiar los cierres' });
+        res.status(500).json({ error: 'Error al eliminar el cierre de caja' });
     }
 });
 

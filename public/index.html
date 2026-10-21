@@ -510,10 +510,7 @@
                 </div>
 
                 <div class="card-panel" style="margin-top: 25px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h2>Historial de Cierres de Caja</h2>
-                        <button onclick="limpiarHistorialCierres()" style="background: #a93226; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">🗑️ Limpiar Cierres</button>
-                    </div>
+                    <h2>Historial de Cierres de Caja</h2>
                     <div class="card-list" id="listaHistorialCierres"></div>
                 </div>
             </div>
@@ -1105,21 +1102,22 @@
                                 <span>💵 Efectivo: <b>$${c.totalEfectivo.toFixed(2)}</b></span>
                                 <span>🏦 Transferencia: <b>$${c.totalTransferencia.toFixed(2)}</b></span>
                             </div>
+                            <button onclick="eliminarCierre('${c._id}')" style="margin-top: 5px; background: #2a2a2a; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%;">🗑️ Eliminar este Cierre</button>
                         </div>
                     `;
                 });
             } catch (err) { console.error(err); }
         }
 
-        async function limpiarHistorialCierres() {
-            if (confirm('⚠️ ¿Estás segura de que deseas ELIMINAR TODO EL HISTORIAL DE CIERRES DE CAJA? Esta acción no se puede deshacer.')) {
-                const res = await fetch(`${API_URL}/closures`, { method: 'DELETE' });
+        async function eliminarCierre(id) {
+            if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este cierre de caja específico?')) {
+                const res = await fetch(`${API_URL}/closures/${id}`, { method: 'DELETE' });
                 if (res.ok) {
-                    alert('🗑️ Historial de cierres limpiado exitosamente.');
+                    alert('🗑️ Cierre de caja eliminado con éxito.');
                     cargarHistorialCierres();
                     cargarCierreDiario();
                 } else {
-                    alert('Error al limpiar los cierres.');
+                    alert('Error al eliminar el cierre.');
                 }
             }
         }
