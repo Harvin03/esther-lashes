@@ -329,11 +329,11 @@
             <form id="authForm" onsubmit="procesarAuth(event)">
                 <div class="form-group">
                     <label>Nombre de Usuario</label>
-                    <input type="text" id="authUsername" required placeholder="Ej: admin">
+                    <input type="text" id="authUsername" required placeholder="Ej: admin" autocapitalize="none" autocorrect="off" spellcheck="false">
                 </div>
                 <div class="form-group">
                     <label>Contraseña</label>
-                    <input type="password" id="authPassword" required placeholder="••••••••">
+                    <input type="password" id="authPassword" required placeholder="••••••••" autocapitalize="none" autocorrect="off" spellcheck="false">
                 </div>
                 <button type="submit" class="btn-primary" style="margin-top: 10px;">Ingresar al Sistema</button>
             </form>
@@ -522,11 +522,11 @@
                     <form id="newUserForm" onsubmit="crearUsuarioInterno(event)">
                         <div class="form-group">
                             <label>Nombre de Usuario</label>
-                            <input type="text" id="newUsername" required placeholder="Ej: maria">
+                            <input type="text" id="newUsername" required placeholder="Ej: maria" autocapitalize="none" autocorrect="off">
                         </div>
                         <div class="form-group">
                             <label>Contraseña</label>
-                            <input type="password" id="newPassword" required placeholder="••••••••">
+                            <input type="password" id="newPassword" required placeholder="••••••••" autocapitalize="none" autocorrect="off">
                         </div>
                         <div class="form-group">
                             <label>Rol</label>
@@ -615,8 +615,8 @@
 
         async function procesarAuth(e) {
             e.preventDefault();
-            const username = document.getElementById('authUsername').value;
-            const password = document.getElementById('authPassword').value;
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value.trim();
 
             try {
                 const res = await fetch(`${API_URL}/auth/login`, {
@@ -649,8 +649,8 @@
 
         async function crearUsuarioInterno(e) {
             e.preventDefault();
-            const username = document.getElementById('newUsername').value;
-            const password = document.getElementById('newPassword').value;
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value.trim();
             const role = document.getElementById('newRole').value;
 
             const res = await fetch(`${API_URL}/users`, {

@@ -102,8 +102,12 @@ async function crearAdminInicial() {
 
 app.post('/api/auth/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        let { username, password } = req.body;
         
+        // Normalización de entrada de texto
+        if (username) username = username.trim().toLowerCase();
+        if (password) password = password.trim();
+
         const user = await User.findOne({ username });
         if (!user) {
             return res.status(400).json({ error: 'Usuario o contraseña incorrectos.' });
@@ -128,8 +132,11 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
     try {
-        const { username, password, role } = req.body;
+        let { username, password, role } = req.body;
         
+        if (username) username = username.trim().toLowerCase();
+        if (password) password = password.trim();
+
         const existingUser = await User.findOne({ username });
         if (existingUser) {
             return res.status(400).json({ error: 'El nombre de usuario ya existe.' });
@@ -280,7 +287,6 @@ app.post('/api/closures', async (req, res) => {
     }
 });
 
-// Eliminar un cierre de caja específico
 app.delete('/api/closures/:id', async (req, res) => {
     try {
         await Closure.findByIdAndDelete(req.params.id);
