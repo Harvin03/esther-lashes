@@ -111,7 +111,6 @@ app.post('/api/auth/login', async (req, res) => {
         const usernameTrimmed = username.trim();
         const passwordTrimmed = password.trim();
 
-        // Búsqueda flexible insensible a mayúsculas/minúsculas
         const user = await User.findOne({ 
             username: { $regex: new RegExp(`^${usernameTrimmed}$`, 'i') } 
         });
@@ -169,6 +168,16 @@ app.get('/api/users', async (req, res) => {
         res.json(users);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Eliminar un usuario creado (Exclusivo Admin)
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Usuario eliminado correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al eliminar el usuario' });
     }
 });
 

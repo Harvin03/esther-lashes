@@ -450,7 +450,7 @@
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
                         Registro organizado por año, mes y día.
                     </p>
-                    <button onclick="limpiarHistorialCompleto()" class="btn-primary" style="background: #a93226; color: white;">🗑️ Limpiar Todo el Historial</button>
+                    <button id="btnLimpiarHistorial" onclick="limpiarHistorialCompleto()" class="btn-primary" style="background: #a93226; color: white; display: none;">🗑️ Limpiar Todo el Historial</button>
                 </div>
                 <div id="contenedorHistorialAgrupado"></div>
             </div>
@@ -598,10 +598,13 @@
                 document.getElementById('userBar').style.display = 'flex';
                 document.getElementById('userNameTag').innerText = `👤 ${user.username} (${user.role})`;
 
+                // Mostrar elementos exclusivos de Administrador
                 if (user.role === 'admin') {
                     document.getElementById('tabBtnUsuarios').style.display = 'flex';
+                    document.getElementById('btnLimpiarHistorial').style.display = 'block';
                 } else {
                     document.getElementById('tabBtnUsuarios').style.display = 'none';
+                    document.getElementById('btnLimpiarHistorial').style.display = 'none';
                 }
 
                 cargarServicios();
@@ -649,6 +652,12 @@
 
         async function crearUsuarioInterno(e) {
             e.preventDefault();
+            const userSession = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userSession.role !== 'admin') {
+                alert('⚠️ No tienes permisos de administrador.');
+                return;
+            }
+
             const username = document.getElementById('newUsername').value.trim();
             const password = document.getElementById('newPassword').value.trim();
             const role = document.getElementById('newRole').value;
@@ -673,19 +682,45 @@
             try {
                 const res = await fetch(`${API_URL}/users`);
                 const users = await res.json();
+                const userSession = JSON.parse(localStorage.getItem('user') || '{}');
                 const contenedor = document.getElementById('listaUsuarios');
                 contenedor.innerHTML = '';
                 users.forEach(u => {
+                    let botonEliminar = '';
+                    // Solo el admin puede borrar usuarios (y se evita borrar a sí mismo o al admin principal si se desea)
+                    if (userSession.role === 'admin' && u.username !== 'admin') {
+                        botonEliminar = `<button onclick="eliminarUsuario('${u._id}')" style="background: #2a2a2a; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">🗑️ Eliminar</button>`;
+                    }
+
                     contenedor.innerHTML += `
                         <div class="card-item">
                             <div class="card-info">
                                 <h4>👤 ${u.username}</h4>
                                 <p><span class="badge">Rol: ${u.role}</span></p>
                             </div>
+                            ${botonEliminar}
                         </div>
                     `;
                 });
             } catch (err) { console.error(err); }
+        }
+
+        async function eliminarUsuario(id) {
+            const userSession = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userSession.role !== 'admin') {
+                alert('⚠️ Acción no permitida.');
+                return;
+            }
+
+            if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este usuario?')) {
+                const res = await fetch(`${API_URL}/users/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    alert('🗑️ Usuario eliminado correctamente.');
+                    cargarUsuariosList();
+                } else {
+                    alert('Error al eliminar el usuario.');
+                }
+            }
         }
 
         function switchTab(tabId) {
@@ -752,6 +787,7 @@
             try {
                 const res = await fetch(`${API_URL}/services`);
                 const servicios = await res.json();
+                const userSession = JSON.parse(localStorage.getItem('user') || '{}');
                 const contenedor = document.getElementById('listaServicios');
                 const selectVenta = document.getElementById('selectServicioVenta');
                 
@@ -759,6 +795,11 @@
                 selectVenta.innerHTML = '';
 
                 servicios.forEach(s => {
+                    let botonEliminarServicio = '';
+                    if (userSession.role === 'admin') {
+                        botonEliminarServicio = `<button onclick="eliminarServicio('${s._id}')" title="Eliminar">🗑️</button>`;
+                    }
+
                     contenedor.innerHTML += `
                         <div class="card-item">
                             <div class="card-info">
@@ -768,7 +809,7 @@
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <span class="price-tag">$${s.precio}</span>
                                 <div class="actions">
-                                    <button onclick="eliminarServicio('${s._id}')" title="Eliminar">🗑️</button>
+                                    ${botonEliminarServicio}
                                 </div>
                             </div>
                         </div>
@@ -807,6 +848,12 @@
         });
 
         async function eliminarServicio(id) {
+            const userSession = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userSession.role !== 'admin') {
+                alert('⚠️ Solo los administradores pueden eliminar servicios.');
+                return;
+            }
+
             if(confirm('¿Eliminar este servicio del catálogo?')) {
                 await fetch(`${API_URL}/services/${id}`, { method: 'DELETE' });
                 cargarServicios();
@@ -894,6 +941,7 @@
             try {
                 const res = await fetch(`${API_URL}/sales`);
                 const ventas = await res.json();
+                const userSession = JSON.parse(localStorage.getItem('user') || '{}');
                 const contenedor = document.getElementById('contenedorHistorialAgrupado');
                 contenedor.innerHTML = '';
 
@@ -925,6 +973,11 @@
                                 const detalleServicios = v.services.map(s => s.nombreServicio).join(', ');
                                 const horaFormateada = new Date(v.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
+                                let botonEditar = '';
+                                if (userSession.role === 'admin') {
+                                    botonEditar = `<button onclick="abrirModalEditar('${v._id}', '${v.clientName}', '${v.metodoPago}')" style="background: #2a2a2a; color: var(--gold); border: 1px solid var(--gold); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✏️ Editar</button>`;
+                                }
+
                                 htmlVentas += `
                                     <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
                                         <div style="display: flex; justify-content: space-between; width: 100%;">
@@ -934,7 +987,7 @@
                                         <p style="font-size: 0.9rem;"><b>Servicio(s):</b> ${detalleServicios}</p>
                                         <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px; align-items: center;">
                                             <span>⏰ ${horaFormateada} — <span class="badge">Pago: ${v.metodoPago}</span></span>
-                                            <button onclick="abrirModalEditar('${v._id}', '${v.clientName}', '${v.metodoPago}')" style="background: #2a2a2a; color: var(--gold); border: 1px solid var(--gold); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">✏️ Editar</button>
+                                            ${botonEditar}
                                         </div>
                                     </div>
                                 `;
@@ -957,6 +1010,11 @@
         }
 
         function abrirModalEditar(id, cliente, metodo) {
+            const userSession = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userSession.role !== 'admin') {
+                alert('⚠️ Solo los administradores pueden editar facturas.');
+                return;
+            }
             document.getElementById('editSaleId').value = id;
             document.getElementById('editClientName').value = cliente;
             document.getElementById('editMetodoPago').value = metodo;
@@ -989,6 +1047,12 @@
         }
 
         async function limpiarHistorialCompleto() {
+            const userSession = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userSession.role !== 'admin') {
+                alert('⚠️ Acción no permitida.');
+                return;
+            }
+
             if (confirm('⚠️ ¿Estás segura de que deseas ELIMINAR TODO EL HISTORIAL DE FACTURAS? Esta acción no se puede deshacer.')) {
                 const res = await fetch(`${API_URL}/sales`, { method: 'DELETE' });
                 if (res.ok) {
@@ -1083,6 +1147,7 @@
             try {
                 const res = await fetch(`${API_URL}/closures`);
                 const cierres = await res.json();
+                const userSession = JSON.parse(localStorage.getItem('user') || '{}');
                 const contenedor = document.getElementById('listaHistorialCierres');
                 contenedor.innerHTML = '';
                 if (cierres.length === 0) {
@@ -1092,6 +1157,12 @@
                 cierres.forEach((c) => {
                     const fechaObj = new Date(c.fechaCierre);
                     const fechaStr = fechaObj.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+
+                    let botonEliminarCierre = '';
+                    if (userSession.role === 'admin') {
+                        botonEliminarCierre = `<button onclick="eliminarCierre('${c._id}')" style="margin-top: 5px; background: #2a2a2a; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%;">🗑️ Eliminar este Cierre</button>`;
+                    }
+
                     contenedor.innerHTML += `
                         <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
                             <div style="display: flex; justify-content: space-between; width: 100%; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
@@ -1102,7 +1173,7 @@
                                 <span>💵 Efectivo: <b>$${c.totalEfectivo.toFixed(2)}</b></span>
                                 <span>🏦 Transferencia: <b>$${c.totalTransferencia.toFixed(2)}</b></span>
                             </div>
-                            <button onclick="eliminarCierre('${c._id}')" style="margin-top: 5px; background: #2a2a2a; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%;">🗑️ Eliminar este Cierre</button>
+                            ${botonEliminarCierre}
                         </div>
                     `;
                 });
@@ -1110,6 +1181,12 @@
         }
 
         async function eliminarCierre(id) {
+            const userSession = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userSession.role !== 'admin') {
+                alert('⚠️ Solo los administradores pueden eliminar cierres de caja.');
+                return;
+            }
+
             if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este cierre de caja específico?')) {
                 const res = await fetch(`${API_URL}/closures/${id}`, { method: 'DELETE' });
                 if (res.ok) {
