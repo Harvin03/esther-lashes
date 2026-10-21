@@ -284,25 +284,15 @@
             border: 1px solid var(--border);
         }
 
-        #ticketImpresion, #cierreImpresion {
-            display: none !important;
-        }
-
         @media print {
             body * { visibility: hidden; }
-            #ticketImpresion, #ticketImpresion *, #cierreImpresion, #cierreImpresion * { visibility: visible; }
-            #ticketImpresion, #cierreImpresion {
-                display: block !important;
+            #modalTicket, #modalTicket * { visibility: visible; }
+            #modalTicket {
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
-                max-width: 80mm;
-                font-family: 'Courier New', Courier, monospace;
-                color: #000 !important;
                 background: #fff !important;
-                padding: 10px;
-                font-size: 12px;
             }
         }
     </style>
@@ -587,6 +577,7 @@
 
     <script>
         const API_URL = '/api';
+        let ventasCajaActual = [];
 
         function checkSession() {
             const token = localStorage.getItem('token');
@@ -598,7 +589,6 @@
                 document.getElementById('userBar').style.display = 'flex';
                 document.getElementById('userNameTag').innerText = `👤 ${user.username} (${user.role})`;
 
-                // Mostrar elementos exclusivos de Administrador
                 if (user.role === 'admin') {
                     document.getElementById('tabBtnUsuarios').style.display = 'flex';
                     document.getElementById('btnLimpiarHistorial').style.display = 'block';
@@ -687,7 +677,6 @@
                 contenedor.innerHTML = '';
                 users.forEach(u => {
                     let botonEliminar = '';
-                    // Solo el admin puede borrar usuarios (y se evita borrar a sí mismo o al admin principal si se desea)
                     if (userSession.role === 'admin' && u.username !== 'admin') {
                         botonEliminar = `<button onclick="eliminarUsuario('${u._id}')" style="background: #2a2a2a; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">🗑️ Eliminar</button>`;
                     }
@@ -899,21 +888,9 @@
                 const ahora = new Date();
                 const fechaStr = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString();
 
-                document.getElementById('ticketFecha').innerText = fechaStr;
-                document.getElementById('ticketCliente').innerText = cliente;
-                document.getElementById('ticketMetodo').innerText = metodoPago;
-                document.getElementById('ticketServicioNombre').innerText = nombreServicio;
-                document.getElementById('ticketServicioPrecio').innerText = `$${precioServicio.toFixed(2)}`;
-
-                const bloqueEfectivo = document.getElementById('ticketBloqueEfectivo');
                 let textoEfectivoTicket = "";
                 if (metodoPago === 'Efectivo') {
-                    bloqueEfectivo.style.display = 'block';
-                    document.getElementById('ticketEfectivoRecibido').innerText = `$${efectivoRecibido.toFixed(2)}`;
-                    document.getElementById('ticketCambioDevuelto').innerText = `$${cambioDevuelto.toFixed(2)}`;
                     textoEfectivoTicket = `Efectivo Recibido: $${efectivoRecibido.toFixed(2)}\nCambio Devuelto: $${cambioDevuelto.toFixed(2)}\n`;
-                } else {
-                    bloqueEfectivo.style.display = 'none';
                 }
 
                 const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${cliente}\nPago: ${metodoPago}\n--------------------------------\nServicio: ${nombreServicio}\nPrecio: $${precioServicio.toFixed(2)}\n--------------------------------\n${textoEfectivoTicket}   ¡Gracias por su visita!   `;
