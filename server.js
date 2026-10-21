@@ -26,7 +26,7 @@ mongoose.connect(MONGO_URI)
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, default: 'empleado' }, // 'admin' o 'empleado'
+    role: { type: String, default: 'empleado' },
     createdAt: { type: Date, default: Date.now }
 });
 const User = mongoose.model('User', UserSchema);
@@ -229,6 +229,24 @@ app.post('/api/inventory', async (req, res) => {
         res.status(201).json(newItem);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/inventory/:id', async (req, res) => {
+    try {
+        const updatedItem = await Inventory.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updatedItem);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al actualizar el insumo' });
+    }
+});
+
+app.delete('/api/inventory/:id', async (req, res) => {
+    try {
+        await Inventory.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Insumo eliminado correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al eliminar el insumo' });
     }
 });
 

@@ -253,7 +253,7 @@
             border: 1px solid rgba(212, 175, 55, 0.2);
         }
 
-        #modalTicket, #modalEditarFactura {
+        #modalTicket, #modalEditarFacturaticket {
             display: none;
             position: fixed;
             top: 0;
@@ -1086,7 +1086,6 @@
             document.getElementById('editClientName').value = venta.clientName;
             document.getElementById('editMetodoPago').value = venta.metodoPago;
             
-            // Copiar los servicios de la venta al arreglo de edición
             serviciosSeleccionadosEdicion = JSON.parse(JSON.stringify(venta.services || []));
             actualizarListaServiciosEdicion();
 
@@ -1213,21 +1212,99 @@
             try {
                 const res = await fetch(`${API_URL}/inventory`);
                 const items = await res.json();
+                const userSession = JSON.parse(localStorage.getItem('user') || '{}');
                 const contenedor = document.getElementById('listaInventario');
                 contenedor.innerHTML = '';
+                
+                if(items.length === 0) {
+                    contenedor.innerHTML = `<p style="color: var(--text-muted); text-align: center;">No hay insumos registrados.</p>`;
+                    return;
+                }
+
                 items.forEach(i => {
-                    contenedor.innerHTML += `
-                        <div class="card-item">
-                            <div class="card-info">
-                                <h4>${i.nombreItem}</h4>
-                                <p>Stock: <b>${i.cantidadStock} ${i.unidadMedida}</b></p>
+                    let accionesAdmin = '';
+                    if (userSession.role === 'admin') {
+                        accionesAdmin = `
+                            <div style="display: flex; gap: 6px; margin-top: 8px;">
+                                <button onclick="modificarStock('${i._id}', ${i.cantidadStock}, 1)" style="background: #2a2a2a; color: var(--gold); border: 1px solid var(--gold); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">➕ Añadir 1</button>
+                                <button onclick="modificarStock('${i._id}', ${i.cantidadStock}, -1)" style="background: #2a2a2a; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">➖ Retirar 1</button>
+                                <button onclick="eliminarInsumo('${i._id}')" style="background: #2a2a2a; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">🗑️ Eliminar</button>
                             </div>
-                            <span class="price-tag" style="font-size: 0.95rem;">Costo: $${i.precioCompra}</span>
+                        `;
+                    }
+
+                    contenedor.innerHTML += `
+                        <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <h4>${i.nombreItem}</h4>
+                                <span class="price-tag" style="font-size: 0.95rem;">Costo: $${i.precioCompra}</span>
+                            </div>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Stock actual: <b style="color: var(--text-main);">${i.cantidadStock} ${i.unidadMedida}</b></p>
+                            ${accionesAdmin}
                         </div>
                     `;
                 });
             } catch (err) { console.error(err); }
         }
+
+        async function modificarStock(id, stockActual, cambio) {
+            const nuevoStock = stockActual + cambio;
+            if (nuevoStock < 0) {
+                alert('⚠️ El stock no puede quedar en negativo.');
+                return;
+            }
+
+            const res = await fetch(`${API_URL}/inventory/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cantidadStock: nuevoStock })
+            });
+
+            if (res.ok) {
+                cargarInventario();
+                cargarOpcionesInsumos();
+            } else {
+                alert('Error al actualizar el stock.');
+            }
+        }
+
+        async function eliminarInsumo(id) {
+            const userSession = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userSession.role !== 'admin') {
+                alert('⚠️ Solo los administradores pueden eliminar insumos.');
+                return;
+            }
+
+            if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este insumo del inventario?')) {
+                const res = await fetch(`${API_URL}/inventory/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    alert('🗑️ Insumo eliminado con éxito.');
+                    cargarInventario();
+                    cargarOpcionesInsumos();
+                } else {
+                    alert('Error al eliminar el insumo.');
+                }
+            }
+        }
+
+        document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const itemData = {
+                nombreItem: document.getElementById('nombreItem').value,
+                cantidadStock: document.getElementById('cantidadStock').value,
+                unidadMedida: document.getElementById('unidadMedida').value,
+                precioCompra: document.getElementById('precioCompra').value
+            };
+            await fetch(`${API_URL}/inventory`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemData)
+            });
+            document.getElementById('inventoryForm').reset();
+            cargarInventario();
+            cargarOpcionesInsumos();
+            alert('✨ Insumo agregado.');
+        });
 
         async function cargarCierreDiario() {
             try {
@@ -1343,25 +1420,6 @@
                 }
             }
         }
-
-        document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const itemData = {
-                nombreItem: document.getElementById('nombreItem').value,
-                cantidadStock: document.getElementById('cantidadStock').value,
-                unidadMedida: document.getElementById('unidadMedida').value,
-                precioCompra: document.getElementById('precioCompra').value
-            };
-            await fetch(`${API_URL}/inventory`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(itemData)
-            });
-            document.getElementById('inventoryForm').reset();
-            cargarInventario();
-            cargarOpcionesInsumos();
-            alert('✨ Insumo agregado.');
-        });
 
         checkSession();
         toggleEfectivoFields();
