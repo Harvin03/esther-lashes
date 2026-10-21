@@ -35,18 +35,19 @@
             background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
             color: white;
             text-align: center;
-            padding: 2.5rem 1rem 2rem 1rem;
+            padding: 2rem 1rem 1.5rem 1rem;
             border-bottom: 2px solid var(--gold);
             box-shadow: 0 5px 20px rgba(212, 175, 55, 0.15);
+            position: relative;
         }
 
         .logo-container {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .logo-container img {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--gold);
@@ -54,7 +55,7 @@
         }
 
         header h1 {
-            font-size: 1.9rem;
+            font-size: 1.8rem;
             font-weight: 700;
             letter-spacing: 1.5px;
             color: var(--gold-light);
@@ -63,10 +64,30 @@
         }
 
         header p {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             letter-spacing: 0.5px;
             text-transform: uppercase;
+        }
+
+        .user-bar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+        }
+
+        .btn-logout {
+            background: #2a2a2a;
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
         }
 
         .nav-tabs {
@@ -74,17 +95,17 @@
             justify-content: center;
             gap: 8px;
             max-width: 750px;
-            margin: 25px auto;
+            margin: 20px auto;
             padding: 0 15px;
             flex-wrap: wrap;
         }
 
         .nav-tabs button {
             flex: 1;
-            min-width: 100px;
+            min-width: 90px;
             background: var(--surface);
             border: 1px solid var(--border);
-            padding: 12px 6px;
+            padding: 10px 5px;
             font-size: 0.75rem;
             font-weight: 600;
             color: var(--text-muted);
@@ -94,7 +115,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
 
         .nav-tabs button.active {
@@ -158,7 +179,7 @@
             letter-spacing: 0.5px;
         }
 
-        input, select, textarea {
+        input, select {
             width: 100%;
             padding: 12px 15px;
             border: 1px solid var(--border);
@@ -215,17 +236,10 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        .card-info h4 {
-            margin: 0 0 4px 0;
-            font-size: 1rem;
-            color: var(--text-main);
-            font-weight: 600;
-        }
-
-        .card-info p {
-            margin: 0;
-            color: var(--text-muted);
-            font-size: 0.85rem;
+        .price-tag {
+            font-weight: 700;
+            color: var(--gold);
+            font-size: 1.05rem;
         }
 
         .badge {
@@ -237,30 +251,6 @@
             font-weight: 700;
             text-transform: uppercase;
             border: 1px solid rgba(212, 175, 55, 0.2);
-        }
-
-        .actions button {
-            background: #2a2a2a;
-            border: 1px solid #444;
-            cursor: pointer;
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            transition: background 0.2s;
-        }
-
-        .actions button:hover {
-            background: #3a3a3a;
-        }
-
-        .price-tag {
-            font-weight: 700;
-            color: var(--gold);
-            font-size: 1.05rem;
         }
 
         /* MODALES */
@@ -278,42 +268,30 @@
             padding: 15px;
         }
 
-        .modal-ticket-content {
+        .modal-ticket-content, .modal-edit-content {
             background: #ffffff;
             color: #000;
             width: 100%;
             max-width: 320px;
             padding: 20px;
             border-radius: 12px;
-            font-family: 'Courier New', Courier, monospace;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            max-height: 90vh;
-            overflow-y: auto;
         }
 
         .modal-edit-content {
             background: var(--surface-card);
             color: var(--text-main);
-            width: 100%;
             max-width: 400px;
-            padding: 24px;
-            border-radius: 16px;
             border: 1px solid var(--border);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
         }
 
-        /* OCULTAR EN PANTALLA LOS ELEMENTOS SOLO DE IMPRESIÓN */
         #ticketImpresion, #cierreImpresion {
             display: none !important;
         }
 
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #ticketImpresion, #ticketImpresion *, #cierreImpresion, #cierreImpresion * {
-                visibility: visible;
-            }
+            body * { visibility: hidden; }
+            #ticketImpresion, #ticketImpresion *, #cierreImpresion, #cierreImpresion * { visibility: visible; }
             #ticketImpresion, #cierreImpresion {
                 display: block !important;
                 position: absolute;
@@ -326,25 +304,6 @@
                 background: #fff !important;
                 padding: 10px;
                 font-size: 12px;
-                line-height: 1.4;
-            }
-            .ticket-header {
-                text-align: center;
-                border-bottom: 1px dashed #000;
-                padding-bottom: 8px;
-                margin-bottom: 8px;
-            }
-            .ticket-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 4px;
-            }
-            .ticket-footer {
-                text-align: center;
-                border-top: 1px dashed #000;
-                padding-top: 8px;
-                margin-top: 8px;
-                font-size: 11px;
             }
         }
     </style>
@@ -357,185 +316,218 @@
         </div>
         <h1>Esther Lashes</h1>
         <p>Lashista & Estudio Profesional</p>
+        
+        <div id="userBar" class="user-bar" style="display: none;">
+            <span id="userNameTag" style="color: var(--gold); font-weight: bold;"></span>
+            <button onclick="logout()" class="btn-logout">Salir 🚪</button>
+        </div>
     </header>
 
-    <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('servicios')">
-            <span>💎</span> Servicios
-        </button>
-        <button class="tab-btn" onclick="switchTab('facturacion')">
-            <span>🧾</span> Facturar
-        </button>
-        <button class="tab-btn" onclick="switchTab('historial')">
-            <span>📊</span> Historial
-        </button>
-        <button class="tab-btn" onclick="switchTab('inventario')">
-            <span>📦</span> Inventario
-        </button>
-        <button class="tab-btn" onclick="switchTab('cierre')">
-            <span>🔒</span> Cierre Caja
-        </button>
+    <!-- SECCIÓN DE LOGIN Y REGISTRO -->
+    <div id="authSection" class="container" style="margin-top: 40px;">
+        <div class="card-panel">
+            <h2 id="authTitle">Iniciar Sesión</h2>
+            <form id="authForm" onsubmit="procesarAuth(event)">
+                <div class="form-group">
+                    <label>Nombre de Usuario</label>
+                    <input type="text" id="authUsername" required placeholder="Ej: esther">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••">
+                </div>
+                <div id="roleGroup" class="form-group" style="display: none;">
+                    <label>Rol de Usuario</label>
+                    <select id="authRole">
+                        <option value="empleado">Empleado / Cajero</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="submit" id="btnAuthSubmit" class="btn-primary" style="margin-top: 10px;">Ingresar al Sistema</button>
+            </form>
+            <p style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+                <span id="authToggleText">¿Primera vez usando el sistema?</span> 
+                <a href="#" onclick="toggleAuthMode(event)" id="authToggleLink" style="color: var(--gold); font-weight: bold;">Crear Usuario</a>
+            </p>
+        </div>
     </div>
 
-    <div class="container">
+    <!-- PANEL PRINCIPAL (SE MUESTRA TRAS AUTENTICARSE) -->
+    <div id="mainApp" style="display: none;">
         
-        <!-- SECCIÓN SERVICIOS -->
-        <div id="servicios" class="tab-content active">
-            <div class="card-panel">
-                <h2>Gestión de Servicios e Insumos</h2>
-                <form id="serviceForm">
-                    <div class="form-group">
-                        <label>Nombre del Procedimiento</label>
-                        <input type="text" id="nombreServicio" required placeholder="Ej: Volumen Ruso">
-                    </div>
-                    <div class="form-group">
-                        <label>Categoría</label>
-                        <select id="categoriaServicio">
-                            <option value="Pestañas">Pestañas</option>
-                            <option value="Cejas">Depilación y Diseño de Cejas</option>
-                            <option value="Micropigmentacion">Micropigmentación</option>
-                            <option value="Labios">Neutralización / Labios</option>
-                            <option value="Cera">Depilación en Cera</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Precio ($)</label>
-                        <input type="number" id="precioServicio" required placeholder="0.00">
-                    </div>
-                    
-                    <div class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
-                        <label style="color: var(--gold);">Insumo que gasta este servicio</label>
-                        <select id="selectInsumoServicio" style="margin-bottom: 8px;">
-                            <option value="">-- Ninguno / No descuenta stock --</option>
-                        </select>
-                        <label>Cantidad consumida por servicio</label>
-                        <input type="number" id="cantidadConsumida" placeholder="Ej: 1 o 2" value="1">
-                    </div>
-
-                    <button type="submit" class="btn-primary" style="margin-top: 10px;">Registrar Servicio</button>
-                </form>
-            </div>
-
-            <div class="card-list" id="listaServicios"></div>
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('servicios')">
+                <span>💎</span> Servicios
+            </button>
+            <button class="tab-btn" onclick="switchTab('facturacion')">
+                <span>🧾</span> Facturar
+            </button>
+            <button class="tab-btn" onclick="switchTab('historial')">
+                <span>📊</span> Historial
+            </button>
+            <button class="tab-btn" onclick="switchTab('inventario')">
+                <span>📦</span> Inventario
+            </button>
+            <button class="tab-btn" onclick="switchTab('cierre')">
+                <span>🔒</span> Cierre Caja
+            </button>
         </div>
 
-        <!-- SECCIÓN FACTURACIÓN -->
-        <div id="facturacion" class="tab-content">
-            <div class="card-panel">
-                <h2>Punto de Venta (POS)</h2>
-                <form id="saleForm">
-                    <div class="form-group">
-                        <label>Nombre de la Clienta</label>
-                        <input type="text" id="clientName" required placeholder="Nombre completo">
-                    </div>
-                    <div class="form-group">
-                        <label>Seleccionar Servicio Realizado</label>
-                        <select id="selectServicioVenta" required onchange="calcularCambio()"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Método de Pago</label>
-                        <select id="metodoPago" onchange="toggleEfectivoFields()">
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Transferencia">Transferencia Bancaria</option>
-                            <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
-                        </select>
-                    </div>
-
-                    <div id="seccionEfectivo" class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
-                        <label style="color: var(--gold);">Efectivo Recibido de la Clienta ($)</label>
-                        <input type="number" id="efectivoRecibido" placeholder="Ej: 2000" oninput="calcularCambio()">
+        <div class="container">
+            
+            <!-- SECCIÓN SERVICIOS -->
+            <div id="servicios" class="tab-content active">
+                <div class="card-panel">
+                    <h2>Gestión de Servicios e Insumos</h2>
+                    <form id="serviceForm">
+                        <div class="form-group">
+                            <label>Nombre del Procedimiento</label>
+                            <input type="text" id="nombreServicio" required placeholder="Ej: Volumen Ruso">
+                        </div>
+                        <div class="form-group">
+                            <label>Categoría</label>
+                            <select id="categoriaServicio">
+                                <option value="Pestañas">Pestañas</option>
+                                <option value="Cejas">Depilación y Diseño de Cejas</option>
+                                <option value="Micropigmentacion">Micropigmentación</option>
+                                <option value="Labios">Neutralización / Labios</option>
+                                <option value="Cera">Depilación en Cera</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Precio ($)</label>
+                            <input type="number" id="precioServicio" required placeholder="0.00">
+                        </div>
                         
-                        <div style="margin-top: 10px; font-size: 1rem;">
-                            <span>Cambio a Devolver: </span>
-                            <strong id="cambioDevolver" style="color: var(--gold); font-size: 1.2rem;">$0.00</strong>
+                        <div class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
+                            <label style="color: var(--gold);">Insumo que gasta este servicio</label>
+                            <select id="selectInsumoServicio" style="margin-bottom: 8px;">
+                                <option value="">-- Ninguno / No descuenta stock --</option>
+                            </select>
+                            <label>Cantidad consumida por servicio</label>
+                            <input type="number" id="cantidadConsumida" placeholder="Ej: 1 o 2" value="1">
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="margin-top: 10px;">Registrar Servicio</button>
+                    </form>
+                </div>
+
+                <div class="card-list" id="listaServicios"></div>
+            </div>
+
+            <!-- SECCIÓN FACTURACIÓN -->
+            <div id="facturacion" class="tab-content">
+                <div class="card-panel">
+                    <h2>Punto de Venta (POS)</h2>
+                    <form id="saleForm">
+                        <div class="form-group">
+                            <label>Nombre de la Clienta</label>
+                            <input type="text" id="clientName" required placeholder="Nombre completo">
+                        </div>
+                        <div class="form-group">
+                            <label>Seleccionar Servicio Realizado</label>
+                            <select id="selectServicioVenta" required onchange="calcularCambio()"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Método de Pago</label>
+                            <select id="metodoPago" onchange="toggleEfectivoFields()">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Transferencia">Transferencia Bancaria</option>
+                                <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
+                            </select>
+                        </div>
+
+                        <div id="seccionEfectivo" class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
+                            <label style="color: var(--gold);">Efectivo Recibido ($)</label>
+                            <input type="number" id="efectivoRecibido" placeholder="Ej: 2000" oninput="calcularCambio()">
+                            
+                            <div style="margin-top: 10px; font-size: 1rem;">
+                                <span>Cambio a Devolver: </span>
+                                <strong id="cambioDevolver" style="color: var(--gold); font-size: 1.2rem;">$0.00</strong>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Emitir Factura y Cobrar</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- SECCIÓN HISTORIAL -->
+            <div id="historial" class="tab-content">
+                <div class="card-panel">
+                    <h2>Historial de Facturas y Ventas</h2>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
+                        Registro organizado por año, mes y día.
+                    </p>
+                    <button onclick="limpiarHistorialCompleto()" class="btn-primary" style="background: #a93226; color: white;">🗑️ Limpiar Todo el Historial</button>
+                </div>
+                <div id="contenedorHistorialAgrupado"></div>
+            </div>
+
+            <!-- SECCIÓN INVENTARIO -->
+            <div id="inventario" class="tab-content">
+                <div class="card-panel">
+                    <h2>Control de Insumos</h2>
+                    <form id="inventoryForm">
+                        <div class="form-group">
+                            <label>Nombre del Insumo</label>
+                            <input type="text" id="nombreItem" required placeholder="Ej: Pestañas Seda / Adhesivo">
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad en Stock</label>
+                            <input type="number" id="cantidadStock" required placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Unidad de Medida</label>
+                            <input type="text" id="unidadMedida" required placeholder="Ej: cajas, unidades, ml">
+                        </div>
+                        <div class="form-group">
+                            <label>Costo de Adquisición ($)</label>
+                            <input type="number" id="precioCompra" required placeholder="0.00">
+                        </div>
+                        <button type="submit" class="btn-primary">Añadir Insumo</button>
+                    </form>
+                </div>
+
+                <div class="card-list" id="listaInventario"></div>
+            </div>
+
+            <!-- SECCIÓN CIERRE DE CAJA -->
+            <div id="cierre" class="tab-content">
+                <div class="card-panel">
+                    <h2>Caja Actual (Turno en curso)</h2>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Acumulado</span>
+                            <h3 id="cierreTotal" style="color: var(--gold); font-size: 1.3rem; margin-top: 5px;">$0.00</h3>
+                        </div>
+                        <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Servicios Realizados</span>
+                            <h3 id="cierreCantidadServicios" style="color: var(--text-main); font-size: 1.3rem; margin-top: 5px;">0</h3>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary">Emitir Factura y Cobrar</button>
-                </form>
-            </div>
-        </div>
+                    <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 15px; font-size: 0.9rem;">
+                        <p style="color: var(--gold); font-weight: 600; margin-bottom: 8px;">Desglose por Método de Pago:</p>
+                        <p style="margin-bottom: 4px;">💵 Efectivo: <b id="cierreEfectivo">$0.00</b></p>
+                        <p style="margin-bottom: 4px;">🏦 Transferencia: <b id="cierreTransferencia">$0.00</b></p>
+                        <p>💳 Tarjeta: <b id="cierreTarjeta">$0.00</b></p>
+                    </div>
 
-        <!-- SECCIÓN HISTORIAL DE VENTAS -->
-        <div id="historial" class="tab-content">
-            <div class="card-panel">
-                <h2>Historial de Facturas y Ventas</h2>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
-                    Registro organizado por año, mes y día de la semana.
-                </p>
-                <button onclick="limpiarHistorialCompleto()" class="btn-primary" style="background: #a93226; color: white;">🗑️ Limpiar Todo el Historial</button>
-            </div>
-            <div id="contenedorHistorialAgrupado">
-                <!-- Se cargan dinámicamente agrupados -->
-            </div>
-        </div>
-
-        <!-- SECCIÓN INVENTARIO -->
-        <div id="inventario" class="tab-content">
-            <div class="card-panel">
-                <h2>Control de Insumos</h2>
-                <form id="inventoryForm">
-                    <div class="form-group">
-                        <label>Nombre del Insumo</label>
-                        <input type="text" id="nombreItem" required placeholder="Ej: Pestañas Seda 0.07 / Adhesivo">
-                    </div>
-                    <div class="form-group">
-                        <label>Cantidad en Stock</label>
-                        <input type="number" id="cantidadStock" required placeholder="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Unidad de Medida</label>
-                        <input type="text" id="unidadMedida" required placeholder="Ej: cajas, unidades, ml">
-                    </div>
-                    <div class="form-group">
-                        <label>Costo de Adquisición ($)</label>
-                        <input type="number" id="precioCompra" required placeholder="0.00">
-                    </div>
-                    <button type="submit" class="btn-primary">Añadir Insumo</button>
-                </form>
-            </div>
-
-            <div class="card-list" id="listaInventario"></div>
-        </div>
-
-        <!-- SECCIÓN CIERRE DE CAJA -->
-        <div id="cierre" class="tab-content">
-            <div class="card-panel">
-                <h2>Caja Actual (Turno en curso)</h2>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.2rem;">
-                    Ingresos acumulados desde el último cierre realizado.
-                </p>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                    <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
-                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Acumulado</span>
-                        <h3 id="cierreTotal" style="color: var(--gold); font-size: 1.3rem; margin-top: 5px;">$0.00</h3>
-                    </div>
-                    <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
-                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Servicios Realizados</span>
-                        <h3 id="cierreCantidadServicios" style="color: var(--text-main); font-size: 1.3rem; margin-top: 5px;">0</h3>
-                    </div>
+                    <button onclick="procesarCierreDeCaja()" class="btn-primary">🔒 Realizar Cierre de Caja y Reiniciar a $0</button>
                 </div>
 
-                <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 15px; font-size: 0.9rem;">
-                    <p style="color: var(--gold); font-weight: 600; margin-bottom: 8px;">Desglose por Método de Pago:</p>
-                    <p style="margin-bottom: 4px;">💵 Efectivo: <b id="cierreEfectivo">$0.00</b></p>
-                    <p style="margin-bottom: 4px;">🏦 Transferencia: <b id="cierreTransferencia">$0.00</b></p>
-                    <p>💳 Tarjeta: <b id="cierreTarjeta">$0.00</b></p>
+                <div class="card-panel" style="margin-top: 25px;">
+                    <h2>Historial de Cierres de Caja</h2>
+                    <div class="card-list" id="listaHistorialCierres"></div>
                 </div>
-
-                <button onclick="procesarCierreDeCaja()" class="btn-primary">🔒 Realizar Cierre de Caja y Reiniciar a $0</button>
             </div>
 
-            <div class="card-panel" style="margin-top: 25px;">
-                <h2>Historial de Cierres de Caja</h2>
-                <div class="card-list" id="listaHistorialCierres"></div>
-            </div>
         </div>
-
     </div>
 
-    <!-- VENTANA MODAL PARA COPIAR TICKET EN CELULAR BLUETOOTH -->
+    <!-- MODAL TICKET -->
     <div id="modalTicket">
         <div class="modal-ticket-content">
             <div style="text-align: center; font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
@@ -548,7 +540,7 @@
         </div>
     </div>
 
-    <!-- VENTANA MODAL PARA EDITAR FACTURA -->
+    <!-- MODAL EDITAR -->
     <div id="modalEditarFactura">
         <div class="modal-edit-content">
             <h2 style="font-size: 1.1rem; margin-bottom: 15px;">Editar Factura</h2>
@@ -572,68 +564,83 @@
         </div>
     </div>
 
-    <!-- TICKET OCULTO PARA IMPRESIÓN DIRECTA DE VENTA -->
-    <div id="ticketImpresion">
-        <div class="ticket-header">
-            <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ESTHER LASHES</h3>
-            <p style="font-size: 10px;">Estudio Profesional de Pestañas</p>
-            <p id="ticketFecha" style="font-size: 10px; margin-top: 4px;"></p>
-        </div>
-        <div style="margin-bottom: 6px;">
-            <p><b>Clienta:</b> <span id="ticketCliente"></span></p>
-            <p><b>Pago:</b> <span id="ticketMetodo"></span></p>
-        </div>
-        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; margin-bottom: 6px;">
-            <div class="ticket-row">
-                <span><b>Servicio</b></span>
-                <span><b>Total</b></span>
-            </div>
-            <div class="ticket-row" style="margin-top: 2px;">
-                <span id="ticketServicioNombre"></span>
-                <span id="ticketServicioPrecio"></span>
-            </div>
-        </div>
-        <div id="ticketBloqueEfectivo" style="margin-bottom: 6px; display: none;">
-            <div class="ticket-row">
-                <span>Efectivo Recibido:</span>
-                <span id="ticketEfectivoRecibido"></span>
-            </div>
-            <div class="ticket-row">
-                <span>Cambio Devuelto:</span>
-                <span id="ticketCambioDevuelto"></span>
-            </div>
-        </div>
-        <div class="ticket-footer">
-            <p>¡Gracias por su preferencia! ✨</p>
-            <p style="font-size: 9px; margin-top: 2px;">Conserve este ticket</p>
-        </div>
-    </div>
-
-    <!-- FORMATO OCULTO PARA IMPRIMIR EL CIERRE DE CAJA -->
-    <div id="cierreImpresion">
-        <div class="ticket-header">
-            <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">ESTHER LASHES</h3>
-            <p style="font-size: 10px;">REPORTE DE CIERRE DE CAJA</p>
-            <p id="cierrePrintFecha" style="font-size: 10px; margin-top: 4px;"></p>
-        </div>
-        <div style="margin-bottom: 6px; font-size: 11px;">
-            <p><b>Total Ingresos:</b> <span id="cierrePrintTotal">$0.00</span></p>
-            <p><b>Servicios Realizados:</b> <span id="cierrePrintCantidad">0</span></p>
-        </div>
-        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; margin-bottom: 6px; font-size: 11px;">
-            <p><b>Desglose de Pagos:</b></p>
-            <p>Efectivo: <span id="cierrePrintEfectivo">$0.00</span></p>
-            <p>Transferencia: <span id="cierrePrintTransferencia">$0.00</span></p>
-            <p>Tarjeta: <span id="cierrePrintTarjeta">$0.00</span></p>
-        </div>
-        <div class="ticket-footer">
-            <p>¡Cierre de caja exitoso! ✨</p>
-        </div>
-    </div>
-
     <script>
         const API_URL = '/api';
+        let isRegisterMode = false;
         let ventasCajaActual = [];
+
+        // LÓGICA DE AUTENTICACIÓN
+        function checkSession() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+            if (token && user.username) {
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('userBar').style.display = 'flex';
+                document.getElementById('userNameTag').innerText = `👤 ${user.username} (${user.role})`;
+                cargarServicios();
+                cargarOpcionesInsumos();
+            } else {
+                document.getElementById('authSection').style.display = 'block';
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('userBar').style.display = 'none';
+            }
+        }
+
+        function toggleAuthMode(e) {
+            e.preventDefault();
+            isRegisterMode = !isRegisterMode;
+
+            document.getElementById('authTitle').innerText = isRegisterMode ? 'Crear Nuevo Usuario' : 'Iniciar Sesión';
+            document.getElementById('btnAuthSubmit').innerText = isRegisterMode ? 'Registrar Usuario' : 'Ingresar al Sistema';
+            document.getElementById('roleGroup').style.display = isRegisterMode ? 'block' : 'none';
+            document.getElementById('authToggleText').innerText = isRegisterMode ? '¿Ya tienes un usuario?' : '¿Primera vez usando el sistema?';
+            document.getElementById('authToggleLink').innerText = isRegisterMode ? 'Iniciar Sesión' : 'Crear Usuario';
+        }
+
+        async function procesarAuth(e) {
+            e.preventDefault();
+            const username = document.getElementById('authUsername').value;
+            const password = document.getElementById('authPassword').value;
+            const role = document.getElementById('authRole').value;
+
+            const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
+            const payload = isRegisterMode ? { username, password, role } : { username, password };
+
+            try {
+                const res = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    if (isRegisterMode) {
+                        alert('✨ Usuario registrado exitosamente. Ahora puedes iniciar sesión.');
+                        toggleAuthMode(e);
+                    } else {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        document.getElementById('authForm').reset();
+                        checkSession();
+                    }
+                } else {
+                    alert(`⚠️ ${data.error || 'Ocurrió un error.'}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error al conectar con el servidor.');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            checkSession();
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -654,8 +661,7 @@
 
         function toggleEfectivoFields() {
             const metodo = document.getElementById('metodoPago').value;
-            const seccionEfectivo = document.getElementById('seccionEfectivo');
-            seccionEfectivo.style.display = (metodo === 'Efectivo') ? 'block' : 'none';
+            document.getElementById('seccionEfectivo').style.display = (metodo === 'Efectivo') ? 'block' : 'none';
             calcularCambio();
         }
 
@@ -837,7 +843,6 @@
             document.getElementById('modalTicket').style.display = 'none';
         }
 
-        // FUNCIONES DE HISTORIAL AGRUPADO POR AÑO, MES Y DÍA
         async function cargarHistorial() {
             try {
                 const res = await fetch(`${API_URL}/sales`);
@@ -850,7 +855,6 @@
                     return;
                 }
 
-                // Agrupar por Año -> Mes -> Día de la semana/fecha
                 let agrupado = {};
                 ventas.forEach(v => {
                     const fechaObj = new Date(v.createdAt || Date.now());
@@ -865,7 +869,6 @@
                     agrupado[anio][mes][diaCompleto].push(v);
                 });
 
-                // Renderizar estructura agrupada
                 for (let anio in agrupado) {
                     for (let mes in agrupado[anio]) {
                         for (let dia in agrupado[anio][mes]) {
@@ -906,7 +909,6 @@
             } catch (err) { console.error(err); }
         }
 
-        // EDITAR FACTURA
         function abrirModalEditar(id, cliente, metodo) {
             document.getElementById('editSaleId').value = id;
             document.getElementById('editClientName').value = cliente;
@@ -939,7 +941,6 @@
             }
         }
 
-        // LIMPIAR TODO EL HISTORIAL
         async function limpiarHistorialCompleto() {
             if (confirm('⚠️ ¿Estás segura de que deseas ELIMINAR TODO EL HISTORIAL DE FACTURAS? Esta acción no se puede deshacer.')) {
                 const res = await fetch(`${API_URL}/sales`, { method: 'DELETE' });
@@ -1079,8 +1080,8 @@
             alert('✨ Insumo agregado.');
         });
 
-        cargarServicios();
-        cargarOpcionesInsumos();
+        // Inicializar verificación de sesión
+        checkSession();
         toggleEfectivoFields();
     </script>
 </body>

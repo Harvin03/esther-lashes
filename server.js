@@ -2,13 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Conexión a MongoDB
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/esther_lashes';
+const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_esther_lashes_2026';
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✨ Conectado exitosamente a MongoDB en la nube'))
@@ -17,6 +19,17 @@ mongoose.connect(MONGO_URI)
 // ==========================================
 // 1. MODELOS DE MONGOOSE
 // ==========================================
+
+// Modelo de Usuarios
+const UserSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, default: 'empleado' }, // 'admin' o 'empleado'
+    createdAt: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', UserSchema);
+
+// Servicios
 const ServiceSchema = new mongoose.Schema({
     nombre: { type: String, required: true },
     categoria: { type: String, required: true },
@@ -28,6 +41,7 @@ const ServiceSchema = new mongoose.Schema({
 });
 const Service = mongoose.model('Service', ServiceSchema);
 
+// Inventario
 const InventorySchema = new mongoose.Schema({
     nombreItem: { type: String, required: true },
     cantidadStock: { type: Number, required: true },
@@ -36,6 +50,7 @@ const InventorySchema = new mongoose.Schema({
 });
 const Inventory = mongoose.model('Inventory', InventorySchema);
 
+// Ventas
 const SaleSchema = new mongoose.Schema({
     clientName: { type: String, required: true },
     services: [{
@@ -48,7 +63,7 @@ const SaleSchema = new mongoose.Schema({
 });
 const Sale = mongoose.model('Sale', SaleSchema);
 
-// Modelo para Cierre de Caja
+// Cierres de Caja
 const closureSchema = new mongoose.Schema({
     totalIngresos: Number,
     cantidadServicios: Number,
@@ -62,10 +77,61 @@ const Closure = mongoose.model('Closure', closureSchema);
 
 
 // ==========================================
-// 2. RUTAS DE LA API
+// 2. RUTAS DE AUTENTICACIÓN
 // ==========================================
 
-// --- Servicios ---
+// Registrar nuevo usuario (Primer registro o admins)
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { username, password, role } = req.body;
+        
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ error: 'El nombre de usuario ya existe.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, password: hashedPassword, role });
+        await newUser.save();
+
+        res.status(201).json({ message: 'Usuario creado con éxito' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(400).json({ error: 'Usuario o contraseña incorrectos.' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ error: 'Usuario o contraseña incorrectos.' });
+        }
+
+        const token = jwt.sign(
+            { id: user._id, username: user.username, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '12h' }
+        );
+
+        res.json({ token, user: { username: user.username, role: user.role } });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ==========================================
+// 3. RUTAS DE LA API
+// ==========================================
+
 app.get('/api/services', async (req, res) => {
     try {
         const services = await Service.find();
@@ -94,7 +160,6 @@ app.delete('/api/services/:id', async (req, res) => {
     }
 });
 
-// --- Inventario ---
 app.get('/api/inventory', async (req, res) => {
     try {
         const items = await Inventory.find();
@@ -114,7 +179,6 @@ app.post('/api/inventory', async (req, res) => {
     }
 });
 
-// --- Ventas / Facturación ---
 app.get('/api/sales', async (req, res) => {
     try {
         const sales = await Sale.find().sort({ createdAt: -1 });
@@ -147,7 +211,6 @@ app.post('/api/sales', async (req, res) => {
     }
 });
 
-// Editar una factura existente
 app.put('/api/sales/:id', async (req, res) => {
     try {
         const { clientName, metodoPago } = req.body;
@@ -162,7 +225,6 @@ app.put('/api/sales/:id', async (req, res) => {
     }
 });
 
-// Limpiar todo el historial de ventas
 app.delete('/api/sales', async (req, res) => {
     try {
         await Sale.deleteMany({});
@@ -172,7 +234,6 @@ app.delete('/api/sales', async (req, res) => {
     }
 });
 
-// --- Cierres de Caja ---
 app.get('/api/closures', async (req, res) => {
     try {
         const cierres = await Closure.find().sort({ fechaCierre: -1 });
@@ -192,10 +253,6 @@ app.post('/api/closures', async (req, res) => {
     }
 });
 
-
-// ==========================================
-// 3. ARCHIVOS ESTÁTICOS Y PUERTO
-// ==========================================
 app.use(express.static('public'));
 
 const PORT = process.env.PORT || 5000;
