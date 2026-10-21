@@ -266,10 +266,10 @@ app.post('/api/sales', async (req, res) => {
 
 app.put('/api/sales/:id', async (req, res) => {
     try {
-        const { clientName, metodoPago } = req.body;
+        const { clientName, services, metodoPago } = req.body;
         const updatedSale = await Sale.findByIdAndUpdate(
             req.params.id, 
-            { clientName, metodoPago }, 
+            { clientName, services, metodoPago }, 
             { new: true }
         );
         res.json(updatedSale);

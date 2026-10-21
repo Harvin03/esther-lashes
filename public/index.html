@@ -271,16 +271,18 @@
             background: #ffffff;
             color: #000;
             width: 100%;
-            max-width: 320px;
+            max-width: 350px;
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-edit-content {
             background: var(--surface-card);
             color: var(--text-main);
-            max-width: 400px;
+            max-width: 420px;
             border: 1px solid var(--border);
         }
 
@@ -414,7 +416,6 @@
                             </div>
                         </div>
 
-                        <!-- Lista de servicios seleccionados para la venta actual -->
                         <div class="form-group">
                             <label>Servicios en esta Factura:</label>
                             <div id="listaServiciosFactura" style="background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-height: 50px; margin-bottom: 10px;">
@@ -578,6 +579,20 @@
                     <label>Nombre de la Clienta</label>
                     <input type="text" id="editClientName" required>
                 </div>
+                
+                <div class="form-group" style="background: rgba(212,175,55,0.05); padding: 12px; border-radius: 10px; border: 1px dashed var(--gold);">
+                    <label style="color: var(--gold);">Modificar Servicios de la Factura</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <select id="editSelectServicioVenta" style="flex: 2;"></select>
+                        <button type="button" onclick="agregarServicioAEdicion()" style="flex: 1; background: var(--gold); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">➕ Agregar</button>
+                    </div>
+                    <div id="editListaServiciosFactura" style="background: var(--bg-color); border: 1px solid var(--border); border-radius: 10px; padding: 8px; min-height: 40px; margin-bottom: 6px;"></div>
+                    <div style="font-size: 0.95rem; text-align: right;">
+                        <span>Nuevo Total: </span>
+                        <strong id="editTotalFactura" style="color: var(--gold); font-size: 1.1rem;">$0.00</strong>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Método de Pago</label>
                     <select id="editMetodoPago">
@@ -586,9 +601,10 @@
                         <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
                     </select>
                 </div>
+
                 <button type="submit" class="btn-primary" style="margin-top: 10px;">Guardar Cambios</button>
                 <button type="button" onclick="reImprimirFacturaActual()" style="background: #2a2a2a; color: var(--gold); border: 1px solid var(--gold); padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 8px;">🖨️ Re-imprimir Ticket</button>
-                <button type="button" onclick="cerrarModalEditar()" style="background: #333; color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 8px;">Cerrar</button>
+                <button type="button" onclick="cerrarModalEditar()" style="background: #333; color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 8px;">Cancelar</button>
             </form>
         </div>
     </div>
@@ -597,7 +613,9 @@
         const API_URL = '/api';
         let ventasCajaActual = [];
         let serviciosSeleccionadosVenta = [];
+        let serviciosSeleccionadosEdicion = [];
         let facturaEnEdicion = null;
+        let catalogoServiciosGlobal = [];
 
         function checkSession() {
             const token = localStorage.getItem('token');
@@ -804,7 +822,6 @@
         function calcularCambio() {
             const metodo = document.getElementById('metodoPago').value;
             const spanCambio = document.getElementById('cambioDevolver');
-            
             const totalVenta = serviciosSeleccionadosVenta.reduce((acc, s) => acc + s.precioUnitario, 0);
 
             if (metodo !== 'Efectivo') {
@@ -840,12 +857,15 @@
             try {
                 const res = await fetch(`${API_URL}/services`);
                 const servicios = await res.json();
+                catalogoServiciosGlobal = servicios;
                 const userSession = JSON.parse(localStorage.getItem('user') || '{}');
                 const contenedor = document.getElementById('listaServicios');
                 const selectVenta = document.getElementById('selectServicioVenta');
+                const editSelectVenta = document.getElementById('editSelectServicioVenta');
                 
                 contenedor.innerHTML = '';
                 selectVenta.innerHTML = '';
+                if(editSelectVenta) editSelectVenta.innerHTML = '';
 
                 servicios.forEach(s => {
                     let botonEliminarServicio = '';
@@ -868,6 +888,7 @@
                         </div>
                     `;
                     selectVenta.innerHTML += `<option value="${s._id}" data-precio="${s.precio}" data-nombre="${s.nombre}">${s.nombre} — $${s.precio}</option>`;
+                    if(editSelectVenta) editSelectVenta.innerHTML += `<option value="${s._id}" data-precio="${s.precio}" data-nombre="${s.nombre}">${s.nombre} — $${s.precio}</option>`;
                 });
             } catch (err) { console.error(err); }
         }
@@ -1064,28 +1085,83 @@
             document.getElementById('editSaleId').value = venta._id;
             document.getElementById('editClientName').value = venta.clientName;
             document.getElementById('editMetodoPago').value = venta.metodoPago;
+            
+            // Copiar los servicios de la venta al arreglo de edición
+            serviciosSeleccionadosEdicion = JSON.parse(JSON.stringify(venta.services || []));
+            actualizarListaServiciosEdicion();
+
             document.getElementById('modalEditarFactura').style.display = 'flex';
+        }
+
+        function agregarServicioAEdicion() {
+            const select = document.getElementById('editSelectServicioVenta');
+            if (!select.options.length) return;
+            const option = select.options[select.selectedIndex];
+            
+            const serviceId = option.value;
+            const nombreServicio = option.getAttribute('data-nombre');
+            const precioUnitario = parseFloat(option.getAttribute('data-precio'));
+
+            serviciosSeleccionadosEdicion.push({ serviceId, nombreServicio, precioUnitario });
+            actualizarListaServiciosEdicion();
+        }
+
+        function quitarServicioDeEdicion(index) {
+            serviciosSeleccionadosEdicion.splice(index, 1);
+            actualizarListaServiciosEdicion();
+        }
+
+        function actualizarListaServiciosEdicion() {
+            const contenedor = document.getElementById('editListaServiciosFactura');
+            const totalTag = document.getElementById('editTotalFactura');
+            contenedor.innerHTML = '';
+
+            if (serviciosSeleccionadosEdicion.length === 0) {
+                contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center;">Ningún servicio en esta factura.</p>`;
+                totalTag.innerText = '$0.00';
+                return;
+            }
+
+            let total = 0;
+            serviciosSeleccionadosEdicion.forEach((s, index) => {
+                total += s.precioUnitario;
+                contenedor.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 0.85rem;">
+                        <span>${s.nombreServicio} — <b style="color: var(--gold);">$${s.precioUnitario.toFixed(2)}</b></span>
+                        <button type="button" onclick="quitarServicioDeEdicion(${index})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-weight: bold;">❌</button>
+                    </div>
+                `;
+            });
+
+            totalTag.innerText = `$${total.toFixed(2)}`;
         }
 
         function cerrarModalEditar() {
             document.getElementById('modalEditarFactura').style.display = 'none';
             facturaEnEdicion = null;
+            serviciosSeleccionadosEdicion = [];
         }
 
         async function guardarEdicionFactura(e) {
             e.preventDefault();
+            if (serviciosSeleccionadosEdicion.length === 0) {
+                alert('⚠️ La factura debe tener al menos un servicio.');
+                return;
+            }
+
             const id = document.getElementById('editSaleId').value;
             const clientName = document.getElementById('editClientName').value;
             const metodoPago = document.getElementById('editMetodoPago').value;
+            const services = serviciosSeleccionadosEdicion;
 
             const res = await fetch(`${API_URL}/sales/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ clientName, metodoPago })
+                body: JSON.stringify({ clientName, services, metodoPago })
             });
 
             if (res.ok) {
-                alert('✨ Factura actualizada con éxito');
+                alert('✨ Factura y servicios actualizados con éxito');
                 cerrarModalEditar();
                 cargarHistorial();
             } else {
@@ -1095,18 +1171,20 @@
 
         function reImprimirFacturaActual() {
             if (!facturaEnEdicion) return;
-            const v = facturaEnEdicion;
-            const fechaObj = new Date(v.createdAt || Date.now());
+            const fechaObj = new Date(facturaEnEdicion.createdAt || Date.now());
             const fechaStr = fechaObj.toLocaleDateString() + ' ' + fechaObj.toLocaleTimeString();
+
+            const cliente = document.getElementById('editClientName').value;
+            const metodo = document.getElementById('editMetodoPago').value;
 
             let textoServiciosTicket = "";
             let totalVenta = 0;
-            v.services.forEach(s => {
+            serviciosSeleccionadosEdicion.forEach(s => {
                 totalVenta += s.precioUnitario;
                 textoServiciosTicket += `- ${s.nombreServicio}: $${s.precioUnitario.toFixed(2)}\n`;
             });
 
-            const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${v.clientName}\nPago: ${v.metodoPago}\n--------------------------------\nServicios:\n${textoServiciosTicket}--------------------------------\nTOTAL: $${totalVenta.toFixed(2)}\n--------------------------------\n   ¡Gracias por su visita!   `;
+            const textoPlano = `      ESTHER LASHES      \nEstudio Profesional\n--------------------------------\nFecha: ${fechaStr}\nClienta: ${cliente}\nPago: ${metodo}\n--------------------------------\nServicios:\n${textoServiciosTicket}--------------------------------\nTOTAL: $${totalVenta.toFixed(2)}\n--------------------------------\n   ¡Gracias por su visita!   `;
             
             document.getElementById('textoTicketCelular').innerText = textoPlano;
             cerrarModalEditar();
