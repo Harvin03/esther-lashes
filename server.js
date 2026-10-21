@@ -104,16 +104,23 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         let { username, password } = req.body;
         
-        // Normalización de entrada de texto
-        if (username) username = username.trim().toLowerCase();
-        if (password) password = password.trim();
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Faltan datos de usuario o contraseña.' });
+        }
 
-        const user = await User.findOne({ username });
+        const usernameTrimmed = username.trim();
+        const passwordTrimmed = password.trim();
+
+        // Búsqueda flexible insensible a mayúsculas/minúsculas
+        const user = await User.findOne({ 
+            username: { $regex: new RegExp(`^${usernameTrimmed}$`, 'i') } 
+        });
+
         if (!user) {
             return res.status(400).json({ error: 'Usuario o contraseña incorrectos.' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(passwordTrimmed, user.password);
         if (!isMatch) {
             return res.status(400).json({ error: 'Usuario o contraseña incorrectos.' });
         }
@@ -134,16 +141,20 @@ app.post('/api/users', async (req, res) => {
     try {
         let { username, password, role } = req.body;
         
-        if (username) username = username.trim().toLowerCase();
-        if (password) password = password.trim();
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Faltan datos obligatorios.' });
+        }
 
-        const existingUser = await User.findOne({ username });
+        const usernameTrimmed = username.trim().toLowerCase();
+        const passwordTrimmed = password.trim();
+
+        const existingUser = await User.findOne({ username: usernameTrimmed });
         if (existingUser) {
             return res.status(400).json({ error: 'El nombre de usuario ya existe.' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword, role });
+        const hashedPassword = await bcrypt.hash(passwordTrimmed, 10);
+        const newUser = new User({ username: usernameTrimmed, password: hashedPassword, role });
         await newUser.save();
 
         res.status(201).json({ message: 'Usuario creado con éxito' });
