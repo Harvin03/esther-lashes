@@ -1256,10 +1256,6 @@
 
         async function modificarStock(id, stockActual, cambio) {
             const nuevoStock = stockActual + cambio;
-            if (nuevoStock < 0) {
-                alert('⚠️ El stock no puede quedar en negativo.');
-                return;
-            }
 
             const res = await fetch(`${API_URL}/inventory/${id}`, {
                 method: 'PUT',
