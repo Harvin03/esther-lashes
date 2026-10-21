@@ -253,7 +253,6 @@
             border: 1px solid rgba(212, 175, 55, 0.2);
         }
 
-        /* MODALES CORREGIDOS: Ocultos por defecto y se muestran con flex al abrirlos */
         #modalTicket, #modalEditarFactura {
             display: none;
             position: fixed;
@@ -1418,7 +1417,7 @@
             }
 
             if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este cierre de caja específico?')) {
-                const res = await fetch(`${API_URL}/closures/${id}`, { method: 'DELETE'LAYER });
+                const res = await fetch(`${API_URL}/closures/${id}`, { method: 'DELETE' });
                 if (res.ok) {
                     alert('🗑️ Cierre de caja eliminado con éxito.');
                     cargarHistorialCierres();
