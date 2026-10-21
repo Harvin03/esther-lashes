@@ -253,7 +253,6 @@
             border: 1px solid rgba(212, 175, 55, 0.2);
         }
 
-        /* MODALES */
         #modalTicket, #modalEditarFactura {
             display: none;
             position: fixed;
@@ -323,14 +322,14 @@
         </div>
     </header>
 
-    <!-- PANTALLA EXCLUSIVA DE INICIO DE SESIÓN -->
+    <!-- INICIO DE SESIÓN -->
     <div id="authSection" class="container" style="margin-top: 40px;">
         <div class="card-panel">
             <h2>Iniciar Sesión</h2>
             <form id="authForm" onsubmit="procesarAuth(event)">
                 <div class="form-group">
                     <label>Nombre de Usuario</label>
-                    <input type="text" id="authUsername" required placeholder="Ej: esther">
+                    <input type="text" id="authUsername" required placeholder="Ej: admin">
                 </div>
                 <div class="form-group">
                     <label>Contraseña</label>
@@ -341,7 +340,7 @@
         </div>
     </div>
 
-    <!-- PANEL PRINCIPAL (SE MUESTRA TRAS AUTENTICARSE) -->
+    <!-- PANEL PRINCIPAL -->
     <div id="mainApp" style="display: none;">
         
         <div class="nav-tabs">
@@ -511,12 +510,15 @@
                 </div>
 
                 <div class="card-panel" style="margin-top: 25px;">
-                    <h2>Historial de Cierres de Caja</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2>Historial de Cierres de Caja</h2>
+                        <button onclick="limpiarHistorialCierres()" style="background: #a93226; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">🗑️ Limpiar Cierres</button>
+                    </div>
                     <div class="card-list" id="listaHistorialCierres"></div>
                 </div>
             </div>
 
-            <!-- SECCIÓN USUARIOS (EXCLUSIVA PARA ADMINISTRADORES) -->
+            <!-- SECCIÓN USUARIOS -->
             <div id="usuarios" class="tab-content">
                 <div class="card-panel">
                     <h2>Crear Nuevo Usuario (Empleado / Admin)</h2>
@@ -599,7 +601,6 @@
                 document.getElementById('userBar').style.display = 'flex';
                 document.getElementById('userNameTag').innerText = `👤 ${user.username} (${user.role})`;
 
-                // Mostrar la pestaña de usuarios SOLO si es admin
                 if (user.role === 'admin') {
                     document.getElementById('tabBtnUsuarios').style.display = 'flex';
                 } else {
@@ -649,7 +650,6 @@
             checkSession();
         }
 
-        // CREAR USUARIO DESDE EL PANEL ADMIN
         async function crearUsuarioInterno(e) {
             e.preventDefault();
             const username = document.getElementById('newUsername').value;
@@ -1111,6 +1111,19 @@
             } catch (err) { console.error(err); }
         }
 
+        async function limpiarHistorialCierres() {
+            if (confirm('⚠️ ¿Estás segura de que deseas ELIMINAR TODO EL HISTORIAL DE CIERRES DE CAJA? Esta acción no se puede deshacer.')) {
+                const res = await fetch(`${API_URL}/closures`, { method: 'DELETE' });
+                if (res.ok) {
+                    alert('🗑️ Historial de cierres limpiado exitosamente.');
+                    cargarHistorialCierres();
+                    cargarCierreDiario();
+                } else {
+                    alert('Error al limpiar los cierres.');
+                }
+            }
+        }
+
         document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const itemData = {
@@ -1130,7 +1143,6 @@
             alert('✨ Insumo agregado.');
         });
 
-        // Inicializar
         checkSession();
         toggleEfectivoFields();
     </script>

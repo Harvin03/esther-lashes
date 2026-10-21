@@ -100,7 +100,6 @@ async function crearAdminInicial() {
 // 2. RUTAS DE AUTENTICACIÓN Y USUARIOS
 // ==========================================
 
-// Login público
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -127,7 +126,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Registrar nuevo usuario (RUTA INTERNA PARA ADMINS)
 app.post('/api/users', async (req, res) => {
     try {
         const { username, password, role } = req.body;
@@ -147,7 +145,6 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
-// Obtener lista de usuarios
 app.get('/api/users', async (req, res) => {
     try {
         const users = await User.find({}, '-password');
@@ -280,6 +277,15 @@ app.post('/api/closures', async (req, res) => {
         res.status(201).json(nuevoCierre);
     } catch (err) {
         res.status(500).json({ error: 'Error al guardar el cierre' });
+    }
+});
+
+app.delete('/api/closures', async (req, res) => {
+    try {
+        await Closure.deleteMany({});
+        res.json({ message: 'Historial de cierres limpiado correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al limpiar los cierres' });
     }
 });
 
