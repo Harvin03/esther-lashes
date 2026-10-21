@@ -296,7 +296,7 @@
             display: none;
         }
 
-        /* DISEÑO EXCLUSIVO PARA IMPRESIÓN TÉRMICA (TICKETS Y CIERRES) */
+        /* DISEÑO EXCLUSIVO PARA IMPRESIÓN TÉRMICA */
         @media print {
             body * {
                 visibility: hidden;
@@ -304,21 +304,7 @@
             #ticketImpresion, #ticketImpresion *, #cierreImpresion, #cierreImpresion * {
                 visibility: visible;
             }
-            #ticketImpresion {
-                display: block !important;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                max-width: 80mm;
-                font-family: 'Courier New', Courier, monospace;
-                color: #000 !important;
-                background: #fff !important;
-                padding: 10px;
-                font-size: 12px;
-                line-height: 1.4;
-            }
-            #cierreImpresion {
+            #ticketImpresion, #cierreImpresion {
                 display: block !important;
                 position: absolute;
                 top: 0;
@@ -510,15 +496,15 @@
         <!-- SECCIÓN CIERRE DE CAJA -->
         <div id="cierre" class="tab-content">
             <div class="card-panel">
-                <h2>Cierre de Caja Diario</h2>
+                <h2>Caja Actual (Turno en curso)</h2>
                 <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.2rem;">
-                    Resumen de ingresos y servicios realizados el día de hoy.
+                    Ingresos acumulados desde el último cierre realizado.
                 </p>
 
                 <!-- Tarjetas de Totales -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                     <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
-                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Ingresos Hoy</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Acumulado</span>
                         <h3 id="cierreTotal" style="color: var(--gold); font-size: 1.3rem; margin-top: 5px;">$0.00</h3>
                     </div>
                     <div style="background: var(--bg-color); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
@@ -535,11 +521,17 @@
                     <p>💳 Tarjeta: <b id="cierreTarjeta">$0.00</b></p>
                 </div>
 
-                <button onclick="imprimirCierreCaja()" class="btn-primary">🖨️ Imprimir / Guardar Cierre del Día</button>
+                <button onclick="procesarCierreDeCaja()" class="btn-primary">🔒 Realizar Cierre de Caja y Reiniciar a $0</button>
             </div>
 
-            <div class="card-list" id="listaCierreDetalle">
-                <!-- Detalle de las ventas de hoy se carga aquí -->
+            <div class="card-panel" style="margin-top: 25px;">
+                <h2>Historial de Cierres de Caja</h2>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Cierres registrados anteriormente con su fecha y hora.
+                </p>
+                <div class="card-list" id="listaHistorialCierres">
+                    <!-- Historial de cierres guardados -->
+                </div>
             </div>
         </div>
 
@@ -621,6 +613,7 @@
 
     <script>
         const API_URL = '/api';
+        let ventasCajaActual = [];
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -638,7 +631,7 @@
             if(tabId === 'inventario') cargarInventario();
             if(tabId === 'historial') cargarHistorial();
             if(tabId === 'facturacion') { cargarServicios(); calcularCambio(); }
-            if(tabId === 'cierre') cargarCierreDiario();
+            if(tabId === 'cierre') { cargarCierreDiario(); cargarHistorialCierres(); }
         }
 
         function toggleEfectivoFields() {
@@ -853,16 +846,153 @@
             document.getElementById('modalTicket').style.display = 'none';
         }
 
-        function imprimirCierreCaja() {
-            const ahora = new Date();
-            document.getElementById('cierrePrintFecha').innerText = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString();
-            document.getElementById('cierrePrintTotal').innerText = document.getElementById('cierreTotal').innerText;
-            document.getElementById('cierrePrintCantidad').innerText = document.getElementById('cierreCantidadServicios').innerText;
-            document.getElementById('cierrePrintEfectivo').innerText = document.getElementById('cierreEfectivo').innerText;
-            document.getElementById('cierrePrintTransferencia').innerText = document.getElementById('cierreTransferencia').innerText;
-            document.getElementById('cierrePrintTarjeta').innerText = document.getElementById('cierreTarjeta').innerText;
+        async function cargarCierreDiario() {
+            try {
+                const resVentas = await fetch(`${API_URL}/sales`);
+                const ventas = await resVentas.json();
 
-            window.print();
+                const resCierres = await fetch(`${API_URL}/closures`);
+                const cierres = await resCierres.json();
+
+                // Filtrar ventas posteriores al último cierre realizado
+                let ultimaFechaCierre = cierres.length > 0 ? new Date(cierres[0].fechaCierre) : new Date(0);
+
+                ventasCajaActual = ventas.filter(v => new Date(v.createdAt) > ultimaFechaCierre);
+
+                let totalIngresos = 0;
+                let cantidadServicios = 0;
+                let totalEfectivo = 0;
+                let totalTransferencia = 0;
+                let totalTarjeta = 0;
+
+                ventasCajaActual.forEach(v => {
+                    const subtotalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
+                    totalIngresos += subtotalVenta;
+                    cantidadServicios += v.services.length;
+
+                    if (v.metodoPago === 'Efectivo') totalEfectivo += subtotalVenta;
+                    if (v.metodoPago === 'Transferencia') totalTransferencia += subtotalVenta;
+                    if (v.metodoPago === 'Tarjeta') totalTarjeta += subtotalVenta;
+                });
+
+                document.getElementById('cierreTotal').innerText = `$${totalIngresos.toFixed(2)}`;
+                document.getElementById('cierreCantidadServicios').innerText = cantidadServicios;
+                document.getElementById('cierreEfectivo').innerText = `$${totalEfectivo.toFixed(2)}`;
+                document.getElementById('cierreTransferencia').innerText = `$${totalTransferencia.toFixed(2)}`;
+                document.getElementById('cierreTarjeta').innerText = `$${totalTarjeta.toFixed(2)}`;
+
+            } catch (err) {
+                console.error("Error cargando cierre diario", err);
+            }
+        }
+
+        async function procesarCierreDeCaja() {
+            const totalText = document.getElementById('cierreTotal').innerText;
+            if (totalText === '$0.00' || ventasCajaActual.length === 0) {
+                alert('⚠️ No hay ventas registradas en la caja actual para realizar un cierre.');
+                return;
+            }
+
+            if (!confirm('🔒 ¿Confirmas que deseas cerrar la caja actual? Esto guardará el resumen y reiniciará la caja a $0.00.')) {
+                return;
+            }
+
+            const totalIngresos = parseFloat(totalText.replace('$', '')) || 0;
+            const cantidadServicios = parseInt(document.getElementById('cierreCantidadServicios').innerText) || 0;
+            const totalEfectivo = parseFloat(document.getElementById('cierreEfectivo').innerText.replace('$', '')) || 0;
+            const totalTransferencia = parseFloat(document.getElementById('cierreTransferencia').innerText.replace('$', '')) || 0;
+            const totalTarjeta = parseFloat(document.getElementById('cierreTarjeta').innerText.replace('$', '')) || 0;
+
+            const datosCierre = {
+                totalIngresos,
+                cantidadServicios,
+                totalEfectivo,
+                totalTransferencia,
+                totalTarjeta,
+                ventasIncluidas: ventasCajaActual
+            };
+
+            const res = await fetch(`${API_URL}/closures`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datosCierre)
+            });
+
+            if (res.ok) {
+                alert('✨ ¡Cierre de caja realizado y guardado exitosamente!');
+                cargarCierreDiario();
+                cargarHistorialCierres();
+            } else {
+                alert('Error al guardar el cierre de caja');
+            }
+        }
+
+        async function cargarHistorialCierres() {
+            try {
+                const res = await fetch(`${API_URL}/closures`);
+                const cierres = await res.json();
+                const contenedor = document.getElementById('listaHistorialCierres');
+                contenedor.innerHTML = '';
+
+                if (cierres.length === 0) {
+                    contenedor.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 15px;">No hay cierres de caja registrados en el historial.</p>`;
+                    return;
+                }
+
+                cierres.forEach((c, index) => {
+                    const fechaObj = new Date(c.fechaCierre);
+                    const fechaStr = fechaObj.toLocaleDateString('es-ES', { 
+                        weekday: 'long', 
+                        day: '2-digit', 
+                        month: 'long', 
+                        year: 'numeric' 
+                    });
+                    const horaStr = fechaObj.toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+
+                    contenedor.innerHTML += `
+                        <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; width: 100%; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+                                <h4 style="color: var(--gold); text-transform: capitalize;">🔒 ${fechaStr} (${horaStr})</h4>
+                                <span class="price-tag">$${c.totalIngresos.toFixed(2)}</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-main); display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: 100%;">
+                                <span>💵 Efectivo: <b>$${c.totalEfectivo.toFixed(2)}</b></span>
+                                <span>🏦 Transferencia: <b>$${c.totalTransferencia.toFixed(2)}</b></span>
+                                <span>💳 Tarjeta: <b>$${c.totalTarjeta.toFixed(2)}</b></span>
+                                <span>💇 Serv. Realizados: <b>${c.cantidadServicios}</b></span>
+                            </div>
+                            <button onclick="reimprimirCierre('${c._id}')" style="margin-top: 5px; background: #222; color: var(--gold); border: 1px solid var(--gold); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%;">🖨️ Imprimir Ticket de este Cierre</button>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                console.error("Error cargando historial de cierres", err);
+            }
+        }
+
+        async function reimprimirCierre(cierreId) {
+            try {
+                const res = await fetch(`${API_URL}/closures`);
+                const cierres = await res.json();
+                const cierre = cierres.find(c => c._id === cierreId);
+
+                if (cierre) {
+                    const fechaObj = new Date(cierre.fechaCierre);
+                    document.getElementById('cierrePrintFecha').innerText = fechaObj.toLocaleDateString() + ' ' + fechaObj.toLocaleTimeString();
+                    document.getElementById('cierrePrintTotal').innerText = `$${cierre.totalIngresos.toFixed(2)}`;
+                    document.getElementById('cierrePrintCantidad').innerText = cierre.cantidadServicios;
+                    document.getElementById('cierrePrintEfectivo').innerText = `$${cierre.totalEfectivo.toFixed(2)}`;
+                    document.getElementById('cierrePrintTransferencia').innerText = `$${cierre.totalTransferencia.toFixed(2)}`;
+                    document.getElementById('cierrePrintTarjeta').innerText = `$${cierre.totalTarjeta.toFixed(2)}`;
+
+                    window.print();
+                }
+            } catch (err) {
+                console.error("Error al reimprimir cierre", err);
+            }
         }
 
         async function cargarHistorial() {
@@ -931,65 +1061,6 @@
                 });
             } catch (err) {
                 console.error("Error cargando inventario", err);
-            }
-        }
-
-        async function cargarCierreDiario() {
-            try {
-                const res = await fetch(`${API_URL}/sales`);
-                const ventas = await res.json();
-                
-                const contenedorDetalle = document.getElementById('listaCierreDetalle');
-                contenedorDetalle.innerHTML = '';
-
-                const hoy = new Date().toLocaleDateString('en-CA');
-
-                let totalIngresos = 0;
-                let cantidadServicios = 0;
-                let totalEfectivo = 0;
-                let totalTransferencia = 0;
-                let totalTarjeta = 0;
-
-                let ventasHoy = ventas.filter(v => {
-                    const fechaVenta = new Date(v.createdAt || Date.now()).toLocaleDateString('en-CA');
-                    return fechaVenta === hoy;
-                });
-
-                if (ventasHoy.length === 0) {
-                    contenedorDetalle.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 20px;">No hay ventas registradas el día de hoy todavía.</p>`;
-                }
-
-                ventasHoy.forEach(v => {
-                    const subtotalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
-                    totalIngresos += subtotalVenta;
-                    cantidadServicios += v.services.length;
-
-                    if (v.metodoPago === 'Efectivo') totalEfectivo += subtotalVenta;
-                    if (v.metodoPago === 'Transferencia') totalTransferencia += subtotalVenta;
-                    if (v.metodoPago === 'Tarjeta') totalTarjeta += subtotalVenta;
-
-                    const detalleServicios = v.services.map(s => s.nombreServicio).join(', ');
-
-                    contenedorDetalle.innerHTML += `
-                        <div class="card-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
-                            <div style="display: flex; justify-content: space-between; width: 100%;">
-                                <h4 style="color: var(--gold);">${v.clientName}</h4>
-                                <span class="price-tag">$${subtotalVenta.toFixed(2)}</span>
-                            </div>
-                            <p style="font-size: 0.85rem;"><b>Servicio:</b> ${detalleServicios}</p>
-                            <span class="badge">Pago: ${v.metodoPago}</span>
-                        </div>
-                    `;
-                });
-
-                document.getElementById('cierreTotal').innerText = `$${totalIngresos.toFixed(2)}`;
-                document.getElementById('cierreCantidadServicios').innerText = cantidadServicios;
-                document.getElementById('cierreEfectivo').innerText = `$${totalEfectivo.toFixed(2)}`;
-                document.getElementById('cierreTransferencia').innerText = `$${totalTransferencia.toFixed(2)}`;
-                document.getElementById('cierreTarjeta').innerText = `$${totalTarjeta.toFixed(2)}`;
-
-            } catch (err) {
-                console.error("Error cargando cierre diario", err);
             }
         }
 

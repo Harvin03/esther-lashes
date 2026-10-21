@@ -48,6 +48,18 @@ const SaleSchema = new mongoose.Schema({
 });
 const Sale = mongoose.model('Sale', SaleSchema);
 
+// Modelo para Cierre de Caja
+const closureSchema = new mongoose.Schema({
+    totalIngresos: Number,
+    cantidadServicios: Number,
+    totalEfectivo: Number,
+    totalTransferencia: Number,
+    totalTarjeta: Number,
+    ventasIncluidas: Array,
+    fechaCierre: { type: Date, default: Date.now }
+});
+const Closure = mongoose.model('Closure', closureSchema);
+
 
 // ==========================================
 // 2. RUTAS DE LA API
@@ -106,7 +118,7 @@ app.post('/api/inventory', async (req, res) => {
     }
 });
 
-// --- Ventas / Facturación (Con diagnóstico de inventario) ---
+// --- Ventas / Facturación ---
 app.get('/api/sales', async (req, res) => {
     try {
         const sales = await Sale.find().sort({ createdAt: -1 });
@@ -159,6 +171,26 @@ app.post('/api/sales', async (req, res) => {
     } catch (err) {
         console.error('Error al procesar la venta:', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Cierres de Caja ---
+app.get('/api/closures', async (req, res) => {
+    try {
+        const cierres = await Closure.find().sort({ fechaCierre: -1 });
+        res.json(cierres);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener los cierres de caja' });
+    }
+});
+
+app.post('/api/closures', async (req, res) => {
+    try {
+        const nuevoCierre = new Closure(req.body);
+        await nuevoCierre.save();
+        res.status(201).json(nuevoCierre);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al guardar el cierre de caja' });
     }
 });
 
