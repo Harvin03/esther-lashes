@@ -524,7 +524,7 @@
                     <button onclick="procesarCierreDeCaja()" class="btn-primary">🔒 Realizar Cierre de Caja y Reiniciar a $0</button>
                 </div>
 
-                <!-- NUEVO APARTADO DE GASTOS QUINCENALES -->
+                <!-- APARTADO DE GASTOS QUINCENALES -->
                 <div class="card-panel" style="margin-top: 25px;">
                     <h2>💸 Registrar Gasto Quincenal</h2>
                     <form id="expenseForm" onsubmit="registrarGasto(event)">
@@ -1403,7 +1403,6 @@
                 const diaActual = ahora.getDate();
                 const esPrimeraQuincena = diaActual <= 15;
 
-                // Filtrar ventas de la quincena actual
                 let totalIngresosQuincena = 0;
                 ventas.forEach(v => {
                     const f = new Date(v.createdAt);
@@ -1415,7 +1414,6 @@
                     }
                 });
 
-                // Filtrar gastos de la quincena actual
                 let totalGastosQuincena = 0;
                 let listaGastosHtml = '';
                 gastos.forEach(g => {
