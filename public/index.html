@@ -461,13 +461,13 @@
             <!-- SECCIÓN HISTORIAL -->
             <div id="historial" class="tab-content">
                 <div class="card-panel">
-                    <h2>Historial de Facturas y Ventas</h2>
+                    <h2>Historial y Rendimiento Quincenal</h2>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">
-                        Registro organizado por año, mes y día.
+                        Ventas agrupadas por quincenas (1 al 15 y 16 al fin de mes).
                     </p>
                     <button id="btnLimpiarHistorial" onclick="limpiarHistorialCompleto()" class="btn-primary" style="background: #a93226; color: white; display: none;">🗑️ Limpiar Todo el Historial</button>
                 </div>
-                <div id="contenedorHistorialAgrupado"></div>
+                <div id="contenedorHistorialQuincenal"></div>
             </div>
 
             <!-- SECCIÓN INVENTARIO -->
@@ -498,7 +498,7 @@
                 <div class="card-list" id="listaInventario"></div>
             </div>
 
-            <!-- SECCIÓN CIERRE DE CAJA -->
+            <!-- SECCIÓN CIERRE DE CAJA Y GASTOS -->
             <div id="cierre" class="tab-content">
                 <div class="card-panel">
                     <h2>Caja Actual (Turno en curso)</h2>
@@ -522,6 +522,27 @@
                     </div>
 
                     <button onclick="procesarCierreDeCaja()" class="btn-primary">🔒 Realizar Cierre de Caja y Reiniciar a $0</button>
+                </div>
+
+                <!-- NUEVO APARTADO DE GASTOS QUINCENALES -->
+                <div class="card-panel" style="margin-top: 25px;">
+                    <h2>💸 Registrar Gasto Quincenal</h2>
+                    <form id="expenseForm" onsubmit="registrarGasto(event)">
+                        <div class="form-group">
+                            <label>Descripción del Gasto</label>
+                            <input type="text" id="gastoDescripcion" required placeholder="Ej: Alquiler, Materiales, Luz, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label>Monto del Gasto ($)</label>
+                            <input type="number" id="gastoMonto" required step="0.01" placeholder="0.00">
+                        </div>
+                        <button type="submit" class="btn-primary">Registrar Gasto</button>
+                    </form>
+                </div>
+
+                <div class="card-panel" style="margin-top: 25px;">
+                    <h2>📊 Balance Neto Quincenal</h2>
+                    <div id="balanceQuincenalContainer" style="margin-top: 10px;"></div>
                 </div>
 
                 <div class="card-panel" style="margin-top: 25px;">
@@ -769,9 +790,9 @@
 
             if(tabId === 'servicios') { cargarServicios(); cargarOpcionesInsumos(); }
             if(tabId === 'inventario') cargarInventario();
-            if(tabId === 'historial') cargarHistorial();
+            if(tabId === 'historial') cargarHistorialQuincenal();
             if(tabId === 'facturacion') { cargarServicios(); }
-            if(tabId === 'cierre') { cargarCierreDiario(); cargarHistorialCierres(); }
+            if(tabId === 'cierre') { cargarCierreDiario(); cargarBalanceQuincenal(); cargarHistorialCierres(); }
             if(tabId === 'usuarios') { cargarUsuariosList(); }
         }
 
@@ -1010,12 +1031,12 @@
             document.getElementById('modalTicket').style.display = 'none';
         }
 
-        async function cargarHistorial() {
+        async function cargarHistorialQuincenal() {
             try {
                 const res = await fetch(`${API_URL}/sales`);
                 const ventas = await res.json();
                 const userSession = JSON.parse(localStorage.getItem('user') || '{}');
-                const contenedor = document.getElementById('contenedorHistorialAgrupado');
+                const contenedor = document.getElementById('contenedorHistorialQuincenal');
                 contenedor.innerHTML = '';
 
                 if (ventas.length === 0) {
@@ -1028,23 +1049,27 @@
                     const fechaObj = new Date(v.createdAt || Date.now());
                     const anio = fechaObj.getFullYear();
                     const mes = fechaObj.toLocaleString('es-ES', { month: 'long' });
-                    const diaCompleto = fechaObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                    const dia = fechaObj.getDate();
+                    const quincenaNombre = dia <= 15 ? '1ra Quincena (Días 1 al 15)' : '2da Quincena (Días 16 al fin de mes)';
 
                     if (!agrupado[anio]) agrupado[anio] = {};
                     if (!agrupado[anio][mes]) agrupado[anio][mes] = {};
-                    if (!agrupado[anio][mes][diaCompleto]) agrupado[anio][mes][diaCompleto] = [];
+                    if (!agrupado[anio][mes][quincenaNombre]) agrupado[anio][mes][quincenaNombre] = [];
 
-                    agrupado[anio][mes][diaCompleto].push(v);
+                    agrupado[anio][mes][quincenaNombre].push(v);
                 });
 
                 for (let anio in agrupado) {
                     for (let mes in agrupado[anio]) {
-                        for (let dia in agrupado[anio][mes]) {
+                        for (let quincena in agrupado[anio][mes]) {
+                            let totalQuincena = 0;
                             let htmlVentas = '';
-                            agrupado[anio][mes][dia].forEach(v => {
+                            
+                            agrupado[anio][mes][quincena].forEach(v => {
                                 const totalVenta = v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
+                                totalQuincena += totalVenta;
                                 const detalleServicios = v.services.map(s => s.nombreServicio).join(', ');
-                                const horaFormateada = new Date(v.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                                const fechaFormateada = new Date(v.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) + ' ' + new Date(v.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
                                 let botonEditar = '';
                                 if (userSession.role === 'admin') {
@@ -1059,7 +1084,7 @@
                                         </div>
                                         <p style="font-size: 0.9rem;"><b>Servicio(s):</b> ${detalleServicios}</p>
                                         <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px; align-items: center;">
-                                            <span>⏰ ${horaFormateada} — <span class="badge">Pago: ${v.metodoPago}</span></span>
+                                            <span>📅 ${fechaFormateada} — <span class="badge">Pago: ${v.metodoPago}</span></span>
                                             ${botonEditar}
                                         </div>
                                     </div>
@@ -1068,9 +1093,12 @@
 
                             contenedor.innerHTML += `
                                 <div class="card-panel" style="margin-bottom: 15px;">
-                                    <h3 style="color: var(--gold-light); font-size: 1rem; text-transform: capitalize; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 10px;">
-                                        📅 ${dia}
-                                    </h3>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px;">
+                                        <h3 style="color: var(--gold-light); font-size: 1rem; text-transform: capitalize;">
+                                            🗓️ ${mes} (${quincena})
+                                        </h3>
+                                        <span class="price-tag" style="font-size: 1.1rem;">Total: $${totalQuincena.toFixed(2)}</span>
+                                    </div>
                                     <div class="card-list" style="margin-top: 0;">
                                         ${htmlVentas}
                                     </div>
@@ -1169,7 +1197,7 @@
             if (res.ok) {
                 alert('✨ Factura y servicios actualizados con éxito');
                 cerrarModalEditar();
-                cargarHistorial();
+                cargarHistorialQuincenal();
             } else {
                 alert('Error al actualizar la factura');
             }
@@ -1208,7 +1236,7 @@
                 const res = await fetch(`${API_URL}/sales`, { method: 'DELETE' });
                 if (res.ok) {
                     alert('🗑️ Historial limpiado exitosamente.');
-                    cargarHistorial();
+                    cargarHistorialQuincenal();
                 } else {
                     alert('Error al limpiar el historial.');
                 }
@@ -1335,6 +1363,115 @@
                 document.getElementById('cierreTransferencia').innerText = `$${totalTransferencia.toFixed(2)}`;
                 document.getElementById('cierreTarjeta').innerText = `$${totalTarjeta.toFixed(2)}`;
             } catch (err) { console.error(err); }
+        }
+
+        async function registrarGasto(e) {
+            e.preventDefault();
+            const descripcion = document.getElementById('gastoDescripcion').value.trim();
+            const monto = parseFloat(document.getElementById('gastoMonto').value) || 0;
+
+            if (!descripcion || monto <= 0) {
+                alert('⚠️ Introduce una descripción y un monto válido.');
+                return;
+            }
+
+            const res = await fetch(`${API_URL}/expenses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ descripcion, monto })
+            });
+
+            if (res.ok) {
+                alert('✨ Gasto registrado con éxito.');
+                document.getElementById('expenseForm').reset();
+                cargarBalanceQuincenal();
+            } else {
+                alert('Error al registrar el gasto.');
+            }
+        }
+
+        async function cargarBalanceQuincenal() {
+            try {
+                const resVentas = await fetch(`${API_URL}/sales`);
+                const ventas = await resVentas.json();
+                const resGastos = await fetch(`${API_URL}/expenses`);
+                const gastos = await resGastos.json();
+
+                const ahora = new Date();
+                const anioActual = ahora.getFullYear();
+                const mesActual = ahora.getMonth();
+                const diaActual = ahora.getDate();
+                const esPrimeraQuincena = diaActual <= 15;
+
+                // Filtrar ventas de la quincena actual
+                let totalIngresosQuincena = 0;
+                ventas.forEach(v => {
+                    const f = new Date(v.createdAt);
+                    if (f.getFullYear() === anioActual && f.getMonth() === mesActual) {
+                        const d = f.getDate();
+                        if ((esPrimeraQuincena && d <= 15) || (!esPrimeraQuincena && d > 15)) {
+                            totalIngresosQuincena += v.services.reduce((acc, s) => acc + s.precioUnitario, 0);
+                        }
+                    }
+                });
+
+                // Filtrar gastos de la quincena actual
+                let totalGastosQuincena = 0;
+                let listaGastosHtml = '';
+                gastos.forEach(g => {
+                    const f = new Date(g.createdAt || Date.now());
+                    if (f.getFullYear() === anioActual && f.getMonth() === mesActual) {
+                        const d = f.getDate();
+                        if ((esPrimeraQuincena && d <= 15) || (!esPrimeraQuincena && d > 15)) {
+                            totalGastosQuincena += g.monto;
+                            listaGastosHtml += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 0.85rem;">
+                                    <span>💸 ${g.descripcion}</span>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <b style="color: #ff6b6b;">-$${g.monto.toFixed(2)}</b>
+                                        <button onclick="eliminarGasto('${g._id}')" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-weight: bold;">❌</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                });
+
+                const gananciaNeta = totalIngresosQuincena - totalGastosQuincena;
+                const nombreQuincena = esPrimeraQuincena ? '1ra Quincena (Días 1 al 15)' : '2da Quincena (Días 16 al fin de mes)';
+
+                const contenedor = document.getElementById('balanceQuincenalContainer');
+                contenedor.innerHTML = `
+                    <p style="color: var(--gold); font-weight: 600; margin-bottom: 10px; text-transform: uppercase; font-size: 0.85rem;">Periodo: ${nombreQuincena}</p>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95rem;">
+                        <span>Ingresos Totales:</span>
+                        <b style="color: var(--gold);">+$${totalIngresosQuincena.toFixed(2)}</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem;">
+                        <span>Gastos Registrados:</span>
+                        <b style="color: #ff6b6b;">-$${totalGastosQuincena.toFixed(2)}</b>
+                    </div>
+                    <div style="background: var(--bg-color); padding: 12px; border-radius: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span style="font-weight: bold; font-size: 0.9rem;">Ganancia Neta Limpia:</span>
+                        <b style="color: ${gananciaNeta >= 0 ? 'var(--gold)' : '#ff6b6b'}; font-size: 1.2rem;">$${gananciaNeta.toFixed(2)}</b>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">Listado de gastos en esta quincena:</p>
+                    <div style="max-height: 150px; overflow-y: auto;">
+                        ${listaGastosHtml || '<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center;">No hay gastos registrados en esta quincena.</p>'}
+                    </div>
+                `;
+            } catch (err) { console.error(err); }
+        }
+
+        async function eliminarGasto(id) {
+            if (confirm('¿Deseas eliminar este gasto?')) {
+                const res = await fetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    cargarBalanceQuincenal();
+                } else {
+                    alert('Error al eliminar el gasto.');
+                }
+            }
         }
 
         async function procesarCierreDeCaja() {
