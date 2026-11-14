@@ -73,6 +73,14 @@ const closureSchema = new mongoose.Schema({
 });
 const Closure = mongoose.model('Closure', closureSchema);
 
+// NUEVO MODELO DE GASTOS QUINCENALES
+const ExpenseSchema = new mongoose.Schema({
+    descripcion: { type: String, required: true },
+    monto: { type: Number, required: true },
+    createdAt: { type: Date, default: Date.now }
+});
+const Expense = mongoose.model('Expense', ExpenseSchema);
+
 
 // ==========================================
 // CREAR ADMIN AUTOMÁTICO SI NO EXISTE
@@ -330,6 +338,38 @@ app.delete('/api/closures/:id', async (req, res) => {
         res.json({ message: 'Cierre de caja eliminado correctamente' });
     } catch (err) {
         res.status(500).json({ error: 'Error al eliminar el cierre de caja' });
+    }
+});
+
+// ==========================================
+// 4. NUEVAS RUTAS DE GASTOS QUINCENALES
+// ==========================================
+
+app.get('/api/expenses', async (req, res) => {
+    try {
+        const expenses = await Expense.find().sort({ createdAt: -1 });
+        res.json(expenses);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/expenses', async (req, res) => {
+    try {
+        const newExpense = new Expense(req.body);
+        await newExpense.save();
+        res.status(201).json(newExpense);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/expenses/:id', async (req, res) => {
+    try {
+        await Expense.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Gasto eliminado correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
